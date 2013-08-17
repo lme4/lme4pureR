@@ -10,7 +10,7 @@
     weights = rep(1, length(y)),
     offset = rep(0, length(y)), REML = TRUE)
 
-  \method{pls}{list} (obj, theta, y,
+  \method{pls}{list} (obj, theta,
     weights = rep(1, length(y)),
     offset = rep(0, length(y)), REML = TRUE)
 }

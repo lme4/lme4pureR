@@ -80,8 +80,12 @@ pls.matrix <- function(obj,theta,y,Zt,Lambdat,Lind,
 ##' @rdname pls
 ##' @method pls list
 ##' @S3method pls list
-pls.list <- function(obj,theta,y,weights=rep(1,length(y)),
-                     offset=rep(0,length(y)),REML=TRUE) {
+pls.list <- function(obj,theta,
+                     weights=rep(1,length(y)),
+                     offset=rep(0,length(y)),
+                     REML=TRUE) {
     retrm <- obj$reTrms
-    pls.matrix(obj$X,theta,y,retrm$Zt,retrm$Lambdat,retrm$Lind,weights,offset,REML)
+    pls.matrix(obj$X,theta,model.response(obj$fr),
+               retrm$Zt,retrm$Lambdat,retrm$Lind,
+               weights,offset,REML)
 }
