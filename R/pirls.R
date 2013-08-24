@@ -60,8 +60,10 @@ pirls <- function(glmod, y, eta,
     L <- Cholesky(tcrossprod(Lambdat %*% Zt), perm=FALSE, LDL=FALSE, Imult=1)
     rm(retrms, glmod,family)
     if (nAGQ > 0L) {
+                                        # create function for conducting PIRLS
         function(thetabeta) {
-            Lambdat@x[] <<- thfun(thetabeta) # update Lambdat
+                                        # initialize
+            Lambdat@x[] <<- thfun(thetabeta)
             LtZt <- Lambdat %*% Zt
             beta[] <<- thetabeta[betaind]
             offb <- offset + X %*% beta
@@ -72,20 +74,29 @@ pirls <- function(glmod, y, eta,
             }
             u[] <<- numeric(q)
             olducden <- updatemu(u)
-                                        # initialization
             cvgd <- FALSE
-            for(i in 1:npirls){         # PIRLS
+            for(i in 1:npirls){
                                         # update w and muEta
                 Whalf <- Diagonal(x=sqrt(weights/variance(mu)))
+                                        # update weighted design matrix
                 LtZtMWhalf <- LtZt %*% (Diagonal(x=muEta(eta)) %*% Whalf)
+                                        # update Cholesky decomposition
                 L <- update(L, LtZtMWhalf, 1)
-                delu <- as.vector(solve(L, LtZtMWhalf %*%(Whalf %*% (y - mu)) - u))
+                                        # alternative (more explicit but slower)
+                                        # Cholesky update
+                # L <- Cholesky(tcrossprod(LtZtMWhalf), perm=FALSE, LDL=FALSE, Imult=1)
+                                        # update weighted residuals
+                wtres <- Whalf %*% (y - mu)
+                                        # solve for the increment
+                delu <- as.vector(solve(L, LtZtMWhalf %*% wtres - u))
                 if (verbose > 0L) {
                     cat(sprintf("inc: %12.4g", delu[1]))
                     nprint <- min(5,length(delu))
                     for (j in 2:nprint) cat(sprintf(" %12.4g", delu[j]))
                     cat("\n")
                 }
+                                        # update mu and eta and calculate
+                                        # new unscaled conditional log density
                 ucden <- updatemu(u + delu)
                 if (verbose > 1L) {
                     cat(sprintf("%6.4f: %10.3f\n", 1, ucden))
@@ -106,21 +117,26 @@ pirls <- function(glmod, y, eta,
                     }
                     if(ucden > olducden) stop("Step-halving failed")
                 }
+                                        # set old unscaled conditional log density
+                                        # to the new value
                 olducden <- ucden
+                                        # update the conditional modes (take a step)
                 u[] <<- u + delu
             }
             if(!cvgd) stop("PIRLS failed to converge")
 
+                                        # create Laplace approx to -2log(L)
             ldL2 <- 2*determinant(L, logarithm = TRUE)$modulus
             attributes(ldL2) <- NULL
-            ## create the Laplace approx to -2log(L)
             Lm2ll <- aic(y,rep.int(1,n),mu,weights,NULL) + sum(u^2) +
                 ldL2 #+ (q/2)*log(2*pi)
+
             if (verbose > 0L) {
                 cat(sprintf("%10.3f: %12.4g", Lm2ll, thetabeta[1]))
                 for (j in 2:length(thetabeta)) cat(sprintf(" %12.4g", thetabeta[j]))
                 cat("\n")
             }
+            
             Lm2ll
         }
     } else stop("code for nAGQ == 0 needs to be added")
