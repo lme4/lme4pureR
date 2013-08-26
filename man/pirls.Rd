@@ -1,11 +1,12 @@
 \name{pirls}
 \alias{pirls}
-\title{Create an approximate deviance evaluation function for GLMMs}
+\title{Create an approximate deviance evaluation function for GLMMs using Laplace
+Must use the flexLambda branch of lme4}
 \usage{
   pirls(glmod, y, eta, family = binomial,
     weights = rep(1, length(y)),
     offset = rep(0, length(y)), tol = 10^-6, npirls = 30,
-    nAGQ = 0)
+    nAGQ = 1, verbose = 0L)
 }
 \arguments{
   \item{glmod}{output of \code{glFormula}}

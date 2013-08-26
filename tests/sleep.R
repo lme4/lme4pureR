@@ -1,13 +1,12 @@
-library(lme4pureR)
-library(nloptwrap)
 library(lme4)
+#library(nloptwrap)
 library(lme4pureR)
 library(minqa)
-lmod <- lFormula(Reaction ~ Days + (Days|Subject), sleepstudy)
-
-devf <- pls(lmod,sleepstudy$Reaction)
-bobyqa(c(1, 0, 1), devf, lower=c(0,-Inf,0))[c("par","value")]
-mML <- lmer(Reaction ~ Days + (Days|Subject),
-            sleepstudy, REML = FALSE)
+form <- Reaction ~ Days + (Days|Subject)
+if (FALSE) {            # vector-valued random effects not yet working
+    devf <- plsform(form, sleepstudy, REML=FALSE)
+    bobyqa(1, devf, lower=0, upper=Inf)[c("par","value")]
+}
+mML <- lmer(form, sleepstudy, REML=FALSE)
 getME(mML, "theta")
 deviance(mML)

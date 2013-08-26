@@ -1,4 +1,5 @@
-##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant
+##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant bdiag
+##' @importFrom minqa bobyqa
 NULL
 
 ##' Create linear mixed model deviance function
@@ -111,4 +112,83 @@ pls.list <- function(obj,y,weights=rep(1,length(y)),
         function(theta) theta[Lind]
     })
     pls.matrix(obj$X,y,retrm$Zt,retrm$Lambdat,thfun,weights,offset,REML)
+}
+
+##' Create linear mixed model deviance function from formula/data specification
+##'
+##' A pure \code{R} implementation of the
+##' penalized least squares (PLS) approach to evaluation of the deviance or the
+##' REML criterion for linear mixed-effects models.
+##'
+##' @param formula a two-sided model formula with random-effects terms
+##'   and, optionally, fixed-effects terms.
+##' @param data a data frame in which to evaluate the variables from \code{form}
+##' @param ... Arguments to pass to other functions
+##' @param weights prior weights
+##' @param offset offset
+##' @param REML calculate REML deviance?
+##' @keywords models
+##'
+##' @return a function that evaluates the deviance or REML criterion
+##' @export
+plsform <- function(formula, data, REML=TRUE, weights = rep(1, n), offset = numeric(n), ...)
+    UseMethod("plsform")
+
+##' @rdname plsform
+##' @method plsform formula
+##' @S3method plsform formula
+plsform.formula <- function(formula, data, REML=TRUE, weights, offset, ...)  {
+    stopifnot(length(formula) == 3L,
+              length(rr <- lme4::findbars(formula[[3]])) > 0L)
+    mf <- mc <- mcout <- match.call()
+    m <- match(c("data", "subset", "weights", "na.action", "offset"),
+               names(mf), 0)
+    mf <- mf[c(1, m)]
+    mf$drop.unused.levels <- TRUE
+    mf[[1]] <- quote(model.frame)
+    fr.form <- lme4::subbars(formula)   # substitute "+" for "|"
+    environment(fr.form) <- environment(formula)
+    mf$formula <- fr.form
+    fr <- eval(mf, parent.frame())
+    ff <- formula
+    ff[[3]] <- if(is.null(nb <- lme4::nobars(ff[[3]]))) 1 else nb
+    mf$formula <- ff
+    fr1 <- eval(mf,parent.frame())
+    trms <- attr(mf, "terms") <- attr(fr1, "terms")
+    ll <- list(obj = model.matrix(trms,fr1),
+               y = model.response(fr, type="numeric"),
+               REML=as.logical(REML)[1])
+    n <- length(ll$y)
+    if (!is.null(wts <- model.weights(fr1))) { # FIXME: create a utility function for this
+        stopifnot((lwts <- length(wts)) %in% c(1L,n))
+        ll$weights <- rep.int(wts, n %/% lwts)
+    }
+    if (!is.null(off <- model.offset(fr1))) {
+        stopifnot((loff <- length(off)) %in% c(1L,n))
+        ll$weights <- rep.int(off, n %/% loff)
+    }
+    grps <- lapply(rr, function(t) as.factor(eval(t[[3]], fr)))
+    nlvs <- sapply(grps, function(g) length(levels(g)))
+    zsl <- lapply(grps, as, Class="sparseMatrix")
+    mms <- lapply(rr, function(t) model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))
+    nth <- choose(sapply(mms, ncol) + 1L, 2L) # length of theta for each r.e. term
+    scalar <- all(nth == 1L)
+    if (scalar) {
+        ll$Zt <- do.call(Matrix::rBind, mapply(function(zt,mm) zt %*% Matrix::Diagonal(x=mm[,1]),
+                                               zsl, mms))
+        nthtot <- sum(nth)
+        lower <- numeric(nthtot)
+        theta <- rep(1, nthtot)
+        upper <- rep(Inf, nthtot)
+        ll$Lambdat <- do.call(Matrix::bdiag, lapply(nlvs, function(n) Diagonal(x=rep.int(1,n))))
+        thfun <- function(theta) as.numeric(unlist(mapply(do.call,thfunlist,
+                                                          lapply(split(theta,splits),
+                                                                 function(x)list(theta=x)))))
+        rho <- new.env()
+        rho$thfunlist <- lapply(nlvs, function(x) function(theta) rep.int(theta[1], x))
+        rho$splits <- seq_along(nth)
+        environment(thfun) <- rho
+        ll$thfun <- thfun
+    } else stop("code for vector-valued random effects terms not yet written")
+    do.call(pls, ll)
 }
