@@ -99,7 +99,6 @@
 ##' fm1_ML <- update(fm1,REML=FALSE)
 ##' (fm2 <- lmer(Reaction ~ Days + (Days || Subject), sleepstudy))
 ##' anova(fm1, fm2)
-##' @export
 ##' @importFrom minqa bobyqa
 lmer <- function(formula, data=NULL, REML = TRUE,
                  control = lmerControl(), start = NULL,
