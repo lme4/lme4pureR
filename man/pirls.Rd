@@ -1,31 +1,20 @@
 \name{pirls}
 \alias{pirls}
-\alias{pirls1}
-\title{Penalized iteratively reweighted least squares}
+\title{Create an approximate deviance evaluation function for GLMMs}
 \usage{
-  pirls(theta, beta, u, mu, eta, glmod, y,
-    family = binomial, weights = rep(1, length(y)),
+  pirls(glmod, y, eta, family = binomial,
+    weights = rep(1, length(y)),
     offset = rep(0, length(y)), tol = 10^-6, npirls = 30,
     nAGQ = 0)
-
-  pirls1(thetabeta, ...)
 }
 \arguments{
-  \item{theta}{covariance parameters}
-
-  \item{beta}{initial beta}
-
-  \item{u}{initial u}
-
-  \item{mu}{fitted values}
-
-  \item{eta}{linear predictor}
-
   \item{glmod}{output of \code{glFormula}}
 
   \item{y}{response}
 
-  \item{family}{family}
+  \item{eta}{linear predictor}
+
+  \item{family}{a \code{glm} family object}
 
   \item{weights}{prior weights}
 
@@ -38,11 +27,6 @@
   \item{nAGQ}{either 0 (PIRLS for \code{u} and \code{beta})
   or 1 (\code{u} only).  currently no quadature is
   available}
-
-  \item{thetabeta}{\code{c(theta,beta)} (\code{pirls1}
-  only)}
-
-  \item{...}{Arguments to pass to \code{pirls}}
 }
 \value{
   the laplace approximated deviance with a bunch of
@@ -52,7 +36,7 @@
   convergence }
 }
 \description{
-  A pure \code{R} implementation of Doug Bates' penalized
+  A pure \code{R} implementation of the penalized
   iteratively reweighted least squares (PIRLS) algorithm
   for computing generalized linear mixed model deviances.
   The purpose is to clarify how PIRLS works without having

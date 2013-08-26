@@ -1,6 +1,9 @@
-##' Compute linear mixed model deviance
+##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant
+NULL
+
+##' Create linear mixed model deviance function
 ##'
-##' A pure \code{R} implementation of Doug Bates'
+##' A pure \code{R} implementation of the
 ##' penalized least squares (PLS) approach for computing
 ##' linear mixed model deviances. The purpose
 ##' is to clarify how PLS works without having
@@ -8,84 +11,104 @@
 ##' trying out modifications to PLS.
 ##'
 ##' @param obj output of \code{lFormula} or a model matrix
-##' @param theta covariance parameters
 ##' @param y response
+##' @param ... Arguments to pass to other functions
+##'
+##' @return a function that evaluates the deviance or REML criterion
+##' @export
+pls <- function(obj,y,...) UseMethod("pls")
+
+##' @rdname pls
+##' @param Zt transpose of the sparse model matrix for the random effects
+##' @param Lambdat upper triangular sparse Cholesky factor of the
+##'    relative covariance matrix of the random effects
+##' @param thfun a function that takes a value of \code{theta} and produces
+##'    the non-zero elements of \code{Lambdat}.  The structure of \code{Lambdat}
+##'    cannot change, only the numerical values
 ##' @param weights prior weights
 ##' @param offset offset
 ##' @param REML calculate REML deviance?
-##'
-##' @return deviance with a bunch of attributes:
-##' \itemize{
-##' \item[devML] ML deviance
-##' \item[devREML] REML deviance
-##' \item[beta] fixed effects at convergence
-##' \item[u] conditional mode at convergence
-##' \item[sigmaML] ML estimate of the residual standard deviation 
-##' \item[sigmaREML] REML estimate of the residual standard deviation
-##' }
-##' @export
-pls <- function(obj,theta,y,...) UseMethod("pls")
-
-##' @rdname pls
+##' @keywords models
+##' @examples
+##' library(lme4)
+##' library(nloptwrap)
+##' lmod <- lFormula(Reaction ~ Days + (Days|Subject), sleepstudy)
+##' devf <- pls(lmod,sleepstudy$Reaction)
+##' devf(c(1,0,1))             # starting value
+##' bobyqa(c(1, 0, 1), devf, lower=c(0,-Inf,0))[c("par","value")]
 ##' @method pls matrix
 ##' @S3method pls matrix
-pls.matrix <- function(obj,theta,y,Zt,Lambdat,Lind,
-                       weights = rep(1, length(y)),
-                       offset = rep(0, length(y)),
-                       REML = TRUE){
-    n <- nrow(obj)
+pls.matrix <- function(obj,y,Zt,Lambdat,thfun,
+                       weights = rep(1, n),
+                       offset = numeric(n),
+                       REML = TRUE,...){
+    n <- length(y)
     p <- ncol(obj)
     q <- nrow(Zt)
-                                        # update Lambdat
-    Lambdat@x <- theta[Lind]
-                                        # calculate weighted design matrices
-    W <- Diagonal(x = sqrt(weights))
-    Ut <- Zt %*% W
-    LamtUt <- Lambdat %*% Ut
-    V <- W %*% obj
-                                        # calculate weighted response
-    wtResp <- as.vector(W %*% y)
-    ## sparse Cholesky decomposition of cross-product matrix
-    L <- Cholesky(tcrossprod(LamtUt), perm=FALSE, LDL = FALSE, Imult=1)
-    RZX <- solve(L, LamtUt%*%V, system = "L")
-    RX <- try(chol(crossprod(V) - crossprod(RZX)))
-    if(inherits(RX, "try-error")) return(NA)
-                                        # solve for fixed effect estimates and conditional modes
-    cu <- solve(L, LamtUt %*% wtResp, system = "L")
-    cb <- solve(t(RX), crossprod(V,wtResp) - crossprod(RZX,cu))
-    beta <- solve(RX, cb)
-    u <- solve(L, cu - RZX %*% beta, system = "Lt")
-                                        # calculate conditional mean of the response
-    mu <- crossprod(Zt,crossprod(Lambdat,u)) + (obj %*% beta) + offset
-                                        # calculate weighted residuals
-    wtres <- sqrt(weights)*(y-mu)
-                                        # calculate residual sums of squares
-    wrss <- sum(wtres^2)
-    pwrss <- wrss + sum(u^2)            # penalize
-                                        # calculate log determinants
-    ldL2 <- 2*determinant(L,logarithm=TRUE)$modulus
-    ldRX2 <- 2*determinant(RX,logarithm=TRUE)$modulus
-    attributes(ldL2) <- attributes(ldRX2) <- NULL
-                                        # calculate profiled deviance for theta
-    devML <- ldL2 + n*(1 + log(2*pi*pwrss) - log(n))
-    devREML <- ldL2 + ldRX2 + (n-p)*(1 + log(2*pi*pwrss) -
-                                     log(n-p))
-    if(REML) dev <- devREML
-    else dev <- devML
-    sigmaML <- sqrt(pwrss/sum(weights))
-    return(structure(dev, devML = devML, devREML = devREML, beta = beta, u = u,
-                     sigmaML = sigmaML,
-                     sigmaREML = sigmaML*(n/(n-p))))
+    stopifnot(nrow(obj) == n,
+              ncol(Zt) == n,
+              nrow(Lambdat) == q,
+              ncol(Lambdat) == q,
+              is.function(thfun))
+                                        # calculate weighted products
+    W <- Diagonal(x = weights)
+    L <- Cholesky(tcrossprod(Lambdat %*% Zt), LDL = FALSE, Imult=1)
+    XtWX <- crossprod(obj, W %*% obj)
+    XtWy <- crossprod(obj, W %*% y)
+    ZtWX <- Zt %*% (W %*% obj)
+    ZtWy <- Zt %*% (W %*% y)
+    beta <- numeric(p)
+    u <- numeric(q)
+    mu <- numeric(n)
+    DD <- NULL
+    RZX <- matrix(0,nrow=q,ncol=p)
+    cu <- numeric(q)
+    function(theta) {
+        Lambdat@x[] <<- thfun(theta) 
+        L <- update(L, Lambdat %*% Zt, mult = 1)
+        ## solve system from equation 30
+        cu[] <- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"),
+                                system="L"))
+        ## solve system from eqn. 31
+        RZX[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWX, system="P"),
+                                  system="L"))
+        ## downdate XtWX and form Cholesky factor (eqn. 32)
+        DD <<- as(XtWX - crossprod(RZX), "dpoMatrix")
+        ## conditional estimate of fixed-effects coefficients (solve eqn. 33)
+        beta[] <<- as.vector(solve(DD, XtWy - crossprod(RZX, cu)))
+        ## conditional mode of the spherical random-effects coefficients (eqn. 34)
+        u[] <<- as.vector(solve(L, solve(L, cu - RZX %*% beta, system = "Lt"), system="Pt"))
+                                        # conditional mean of the response
+
+        ## crossprod(Zt,crossprod(Lambdat,u))  == Z Lambda u == Z b
+        mu[] <<- as.vector(crossprod(Zt,crossprod(Lambdat,u)) + obj %*% beta + offset)
+                                        # weighted residuals
+        wtres <- sqrt(weights)*(y-mu)
+                                        # weighted residual sums of squares
+        wrss <- sum(wtres^2)
+        pwrss <- wrss + sum(u^2)        # penalize
+                                        # log determinants
+        ldL2 <- 2*determinant(L,logarithm=TRUE)$modulus
+#        ldRX2 <- determinant(DD,logarithm=TRUE)$modulus # need method in Matrix
+        attributes(ldL2) <- NULL #attributes(ldRX2) <- NULL
+                                        # profiled deviance or REML criterion
+        ## if (REML) 
+        ##     ldL2 + ldRX2 + (n-p)*(1 + log(2*pi*pwrss) - log(n-p))
+        ## else
+        ldL2 + n*(1 + log(2*pi*pwrss) - log(n))
+    }
 }
 ##' @rdname pls
+
 ##' @method pls list
 ##' @S3method pls list
-pls.list <- function(obj,theta,
-                     weights=rep(1,length(y)),
-                     offset=rep(0,length(y)),
-                     REML=TRUE) {
+pls.list <- function(obj,y,weights=rep(1,length(y)),
+                     offset=rep(0,length(y)),REML=TRUE,...) {
     retrm <- obj$reTrms
-    pls.matrix(obj$X,theta,model.response(obj$fr),
-               retrm$Zt,retrm$Lambdat,retrm$Lind,
-               weights,offset,REML)
+    thfun <- retrm$thfun
+    if (is.null(thfun)) thfun <- local({
+        Lind <- retrm$Lind
+        function(theta) theta[Lind]
+    })
+    pls.matrix(obj$X,y,retrm$Zt,retrm$Lambdat,thfun,weights,offset,REML)
 }
