@@ -1,12 +1,9 @@
-library(lme4)
-#library(nloptwrap)
 library(lme4pureR)
-library(minqa)
 form <- Reaction ~ Days + (Days|Subject)
-if (FALSE) {            # vector-valued random effects not yet working
-    devf <- plsform(form, sleepstudy, REML=FALSE)
-    bobyqa(1, devf, lower=0, upper=Inf)[c("par","value")]
-}
-mML <- lmer(form, sleepstudy, REML=FALSE)
-getME(mML, "theta")
-deviance(mML)
+data(sleepstudy, package="lme4")
+ll <- plsform(form, sleepstudy, REML=FALSE)
+devf <- do.call(pls, ll)
+dput(minqa::bobyqa(ll$theta, devf, ll$lower, ll$upper)[c("par","fval")])
+mML <- lme4::lmer(form, sleepstudy, REML=FALSE)
+dput(lme4::getME(mML, "theta"))
+dput(deviance(mML))

@@ -1,11 +1,9 @@
-library(lme4)         # don't attach because of name conflicts
 library(lme4pureR)
-library(minqa)
-
 form <- strength ~ (1|sample) + (1|batch)
+data(Pastes, package="lme4")
 ll <- plsform(form, Pastes, REML=FALSE)
 devf <- do.call(pls, ll)
-bobyqa(c(1,1), devf, lower=c(0,0))[c("par","fval")]
+dput(minqa::bobyqa(ll$theta, devf, ll$lower, ll$upper)[c("par","fval")])
 mML <- lme4::lmer(form, Pastes,REML=FALSE)
-getME(mML, "theta")
-deviance(mML)
+dput(lme4::getME(mML, "theta"))
+dput(deviance(mML))
