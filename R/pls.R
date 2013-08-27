@@ -162,5 +162,3 @@ Zsection <- function(zt,mm) {
     rinds <- as.vector(matrix(seq_len(m*nrow(zt), nrow=m, byrow=TRUE)))
     do.call(rBind,lapply(seq_len(m), function(j) zt %*% Diagonal(mm[,j])))[rinds,]
 }
-
-                                                           
