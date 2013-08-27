@@ -1,4 +1,4 @@
-##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant bdiag
+##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant
 ##' @importFrom minqa bobyqa
 NULL
 
