@@ -23,6 +23,7 @@ NULL
 ##' @param weights prior weights
 ##' @param offset offset
 ##' @param REML calculate REML deviance?
+##' @param ... additional arguments
 ##' @keywords models
 ##'
 ##' @return a function that evaluates the deviance or REML criterion
@@ -97,6 +98,7 @@ pls <- function(X,y,Zt,Lambdat,thfun,
 ##' @param weights prior weights
 ##' @param offset offset
 ##' @param REML calculate REML deviance?
+##' @param ... additional arguments
 ##' @keywords models
 ##'
 ##' @return a function that evaluates the deviance or REML criterion

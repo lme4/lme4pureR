@@ -1,6 +1,6 @@
-##library(lme4)         # don't attach because of name conflicts
+library(lme4)         # don't attach because of name conflicts
 library(lme4pureR)
-#library(minqa)
+library(minqa)
 
 form <- strength ~ (1|sample) + (1|batch)
 devf <- plsform(form, Pastes, REML=FALSE)

@@ -1,4 +1,4 @@
-#library(lme4)   # avoid name conflict with lmer
+library(lme4)   # avoid name conflict with lmer
 library(lme4pureR)
 library(minqa)
 
