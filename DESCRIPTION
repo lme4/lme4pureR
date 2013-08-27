@@ -20,4 +20,3 @@ License: GPL-2
 Collate:
     'pirls.R'
     'pls.R'
-    'lmer.R'
