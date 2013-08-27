@@ -24,7 +24,7 @@
 ##' @details \code{pirls1} is a convenience function for optimizing \code{pirls}
 ##' under \code{nAGQ = 1}. In particular, it wraps \code{theta} and \code{beta}
 ##' into a single argument \code{thetabeta}.
-##' 
+##'
 ##' @return the laplace approximated deviance with a bunch of attributes:
 ##' \itemize{
 ##' \item[pdev] penalized deviance at convergence
@@ -102,7 +102,7 @@ pirls <- function(glmod, y, eta,
                 if (verbose > 1L) {
                     cat(sprintf("%6.4f: %10.3f\n", 1, ucden))
                 }
-                
+
                 if(abs((olducden - ucden) / ucden) < tol){
                     cvgd <- TRUE
                     break
@@ -137,7 +137,7 @@ pirls <- function(glmod, y, eta,
                 for (j in 2:length(thetabeta)) cat(sprintf(" %12.4g", thetabeta[j]))
                 cat("\n")
             }
-            
+
             Lm2ll
         }
     } else stop("code for nAGQ == 0 needs to be added")
