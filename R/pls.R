@@ -1,5 +1,5 @@
-##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant
-##' @importFrom Matrix bdiag rBind Diagonal
+##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant update
+##' @importFrom Matrix bdiag rBind Diagonal Cholesky
 ##' @importFrom minqa bobyqa
 NULL
 
@@ -54,9 +54,9 @@ pls <- function(X,y,Zt,Lambdat,thfun,
     rm(WX, Wy, ZtW)
     function(theta) {
         Lambdat@x[] <<- thfun(theta) 
-        L <- update(L, Lambdat %*% Zt, mult = 1)
+        L <<- update(L, Lambdat %*% Zt, mult = 1)
         ## solve system from equation 30
-        cu[] <- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"),
+        cu[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"),
                                 system="L"))
         ## solve system from eqn. 31
         RZX[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWX, system="P"),
@@ -132,20 +132,33 @@ plsform <- function(formula, data, REML=TRUE, weights, offset, ...)  {
     nlvs <- sapply(grps, function(g) length(levels(g)))
     zsl <- lapply(grps, as, Class="sparseMatrix")
     mms <- lapply(rr, function(t) model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))
+    ll$Zt <- do.call(rBind, mapply(Zsection, zsl, mms))
     nth <- choose(sapply(mms, ncol) + 1L, 2L) # length of theta for each r.e. term
-    scalar <- all(nth == 1L)
-    if (scalar) {
-        ll$Zt <- do.call(rBind, mapply(function(zt,mm) zt %*% Diagonal(x=mm[,1]), zsl, mms))
-        nthtot <- sum(nth)
-        lower <- numeric(nthtot)
-        theta <- rep(1, nthtot)
-        upper <- rep(Inf, nthtot)
+    nthtot <- sum(nth)
+    paroffset <- cumsum(c(0L, nth))
+    if (all(nth == 1L)) {
+        ll$lower <- numeric(nthtot)
+        ll$theta <- rep(1, nthtot)
+        ll$upper <- rep(Inf, nthtot)
         ll$Lambdat <- Diagonal(x=rep(1,sum(nlvs)))
         thfun <- function(theta) rep.int(theta,nlvs)
         rho <- new.env()
         rho$nlvs <- nlvs
         environment(thfun) <- rho
         ll$thfun <- thfun
-    } else stop("code for vector-valued random effects terms not yet written")
-    do.call(pls, ll)
+    } else stop("code for vector-valued random effects not yet written")
+    ll
 }
+
+## Create a section of Zt from a sparse matrix of indicators, zt, and a dense model matrix, mm
+## When mm has a single column it is trivial - multiply zt by a diagonal matrix
+## For multiple columns, rBind the products of zt and a diagonal matrix for each column,
+## then rearrange the order of the rows.
+Zsection <- function(zt,mm) {
+    if ((m <- ncol(mm)) == 1L) return(zt %*% Diagonal(x=mm))
+    ## rinds are row indices.  If m = 2 and nrow(zt) = 10 we want the order 1,11,2,12,3,13,...,20
+    rinds <- as.vector(matrix(seq_len(m*nrow(zt), nrow=m, byrow=TRUE)))
+    do.call(rBind,lapply(seq_len(m), function(j) zt %*% Diagonal(mm[,j])))[rinds,]
+}
+
+                                                           
