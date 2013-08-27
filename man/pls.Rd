@@ -26,6 +26,8 @@
   \item{offset}{offset}
 
   \item{REML}{calculate REML deviance?}
+
+  \item{...}{additional arguments}
 }
 \value{
   a function that evaluates the deviance or REML criterion

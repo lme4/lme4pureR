@@ -19,6 +19,7 @@
 ##' @param npirls maximum number of iterations
 ##' @param nAGQ either 0 (PIRLS for \code{u} and \code{beta}) or 1 (\code{u} only).
 ##'     currently no quadature is available
+##' @param verbose verbose
 ##'
 ##' @details \code{pirls1} is a convenience function for optimizing \code{pirls}
 ##' under \code{nAGQ = 1}. In particular, it wraps \code{theta} and \code{beta}

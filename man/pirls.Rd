@@ -28,6 +28,8 @@ Must use the flexLambda branch of lme4}
   \item{nAGQ}{either 0 (PIRLS for \code{u} and \code{beta})
   or 1 (\code{u} only).  currently no quadature is
   available}
+
+  \item{verbose}{verbose}
 }
 \value{
   the laplace approximated deviance with a bunch of
