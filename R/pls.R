@@ -29,10 +29,8 @@ NULL
 ##'
 ##' @return a function that evaluates the deviance or REML criterion
 ##' @export
-pls <- function(X,y,Zt,Lambdat,thfun,
-                weights,
-                offset = numeric(n),
-                REML = TRUE,...){
+pls <- function(X,y,Zt,Lambdat,thfun,weights,
+                offset = numeric(n),REML = TRUE,...) {
     n <- length(y); p <- ncol(X); q <- nrow(Zt)
     stopifnot(nrow(X) == n, ncol(Zt) == n,
               nrow(Lambdat) == q, ncol(Lambdat) == q, is.function(thfun))
@@ -41,50 +39,59 @@ pls <- function(X,y,Zt,Lambdat,thfun,
     WX <- Whalf %*% X
     Wy <- Whalf %*% y
     ZtW <- Zt %*% Whalf
-    XtWX <- crossprod(WX)
-    XtWy <- crossprod(WX, Wy)
-    ZtWX <- ZtW %*% WX
-    ZtWy <- ZtW %*% Wy
-                                        # other values in the environment
-    L <- Cholesky(tcrossprod(Lambdat %*% Zt), LDL = FALSE, Imult=1)
-    beta <- numeric(p)
-    u <- numeric(q)
-    mu <- numeric(n)
-    DD <- NULL
-    RZX <- matrix(0,nrow=q,ncol=p)
-    cu <- numeric(q)
-    rm(WX, Wy, ZtW)
-    function(theta) {
-        Lambdat@x[] <<- thfun(theta)
-        L <<- update(L, Lambdat %*% Zt, mult = 1)
-        ## solve system from equation 30
-        cu[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"),
-                                system="L"))
-        ## solve system from eqn. 31
-        RZX[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWX, system="P"),
-                                  system="L"))
-        ## downdate XtWX and form Cholesky factor (eqn. 32)
-        DD <<- as(XtWX - crossprod(RZX), "dpoMatrix")
-        ## conditional estimate of fixed-effects coefficients (solve eqn. 33)
-        beta[] <<- as.vector(solve(DD, XtWy - crossprod(RZX, cu)))
-        ## conditional mode of the spherical random-effects coefficients (eqn. 34)
-        u[] <<- as.vector(solve(L, solve(L, cu - RZX %*% beta, system = "Lt"), system="Pt"))
-                                        # conditional mean of the response
-        ## crossprod(Zt,crossprod(Lambdat,u))  == Z Lambda u == Z b
-        mu[] <<- as.vector(crossprod(Zt,crossprod(Lambdat,u)) + X %*% beta + offset)
+    local({
+        b <- numeric(q)
+        beta <- numeric(p)
+        cu <- numeric(q)
+        DD <- NULL
+        L <- Cholesky(tcrossprod(Lambdat %*% Zt), LDL = FALSE, Imult=1)
+        Lambdat <- Lambdat
+        mu <- numeric(n)
+        offset <- offset
+        RZX <- matrix(0,nrow=q,ncol=p)
+        thfun <- thfun
+        u <- numeric(q)
+        whalf <- diag(Whalf)
+        X <- X
+        XtWX <- crossprod(WX)
+        XtWy <- crossprod(WX, Wy)
+        Zt <- Zt
+        ZtWX <- ZtW %*% WX
+        ZtWy <- ZtW %*% Wy
+        function(theta) {
+            Lambdat@x[] <<- thfun(theta)
+            L <<- update(L, Lambdat %*% Zt, mult = 1)
+            ## solve system from equation 30
+            cu[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"),
+                                     system="L"))
+            ## solve system from eqn. 31
+            RZX[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWX, system="P"),
+                                      system="L"))
+            ## downdate XtWX and form Cholesky factor (eqn. 32)
+            DD <<- as(XtWX - crossprod(RZX), "dpoMatrix")
+            ## conditional estimate of fixed-effects coefficients (solve eqn. 33)
+            beta[] <<- as.vector(solve(DD, XtWy - crossprod(RZX, cu)))
+            ## conditional mode of the spherical random-effects coefficients (eqn. 34)
+            u[] <<- as.vector(solve(L, solve(L, cu - RZX %*% beta, system = "Lt"),
+                                    system="Pt"))
+            b[] <<- as.vector(crossprod(Lambdat,u))
+            ## conditional mean of the response
+            mu[] <<- as.vector(crossprod(Zt,b) + X %*% beta + offset)
 
-        wtres <- Whalf*(y-mu)      # weighted residuals
-        wrss <- sum(wtres^2)       # weighted residual sums of squares
-        pwrss <- wrss + sum(u^2)   # plus penalty
-        ldL2 <- 2*determinant(L,logarithm=TRUE)$modulus # log determinants
-        ldRX2 <- determinant(DD,logarithm=TRUE)$modulus
-        attributes(ldL2) <- attributes(ldRX2) <- NULL
+            wtres <- whalf*(y-mu)      # weighted residuals
+            wrss <- sum(wtres^2)       # weighted residual sums of squares
+            pwrss <- wrss + sum(u^2)   # plus penalty
+            fn <- as.numeric(length(mu))
+            res <- 2*determinant(L,logarithm=TRUE)$modulus # log determinants
+            if (REML) {
+                res <- res + determinant(DD,logarithm=TRUE)$modulus
+                fn <- fn - length(beta)
+            }
+            attributes(res) <- NULL
                                         # profiled deviance or REML criterion
-        if (REML)
-            ldL2 + ldRX2 + (n-p)*(1 + log(2*pi*pwrss) - log(n-p))
-        else
-            ldL2 + n*(1 + log(2*pi*pwrss) - log(n))
-    }
+            res + fn*(1 + log(2*pi*pwrss) - log(fn))
+        }
+    })
 }
 
 ##' Create linear mixed model deviance function from formula/data specification
