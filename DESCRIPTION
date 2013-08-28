@@ -1,8 +1,8 @@
 Package: lme4pureR
 Type: Package
 Title: lme4 in pure R
-Version: 0.0-1
-Date: 2013-08-09
+Version: 0.1-0
+Date: 2013-08-28
 Author: Steve Walker, Doug Bates
 Maintainer: Steve Walker <steve.walker@utoronto.ca>
 Description: The penalized least squares (PLS) and penalized iteratively
@@ -10,11 +10,12 @@ Description: The penalized least squares (PLS) and penalized iteratively
     in pure R. The purpose is to clarify how PLS and PIRLS work without having
     to read through C++ code, and as a sandbox for trying out modified versions
     of PLS and PIRLS.
+Suggests:
+    minqa,
+    mlmRev
 Imports:
     lme4,
-    Matrix,
-    minqa, 
-    mlmRev
+    Matrix
 License: GPL-2
 Collate:
     'pirls.R'

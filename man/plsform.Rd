@@ -2,7 +2,8 @@
 \alias{plsform}
 \title{Create linear mixed model deviance function from formula/data specification}
 \usage{
-  plsform(formula, data, REML = TRUE, weights, offset, ...)
+  plsform(formula, data, REML = TRUE, weights, offset,
+    sparseX = FALSE, ...)
 }
 \arguments{
   \item{formula}{a two-sided model formula with
@@ -17,6 +18,9 @@
   \item{offset}{offset}
 
   \item{REML}{calculate REML deviance?}
+
+  \item{sparseX}{should X, the model matrix for the
+  fixed-effects coefficients be sparse?}
 
   \item{...}{additional arguments}
 }
