@@ -6,7 +6,7 @@
     offset = numeric(n), REML = TRUE, ...)
 }
 \arguments{
-  \item{X}{output of \code{lFormula} or a model matrix}
+  \item{X}{fixed effects design (model) matrix}
 
   \item{y}{response}
 

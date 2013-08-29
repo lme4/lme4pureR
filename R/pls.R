@@ -12,7 +12,7 @@ NULL
 ##' to read through C++ code, and as a sandbox for
 ##' trying out modifications to PLS.
 ##'
-##' @param X output of \code{lFormula} or a model matrix
+##' @param X fixed effects design (model) matrix
 ##' @param y response
 ##' @param Zt transpose of the sparse model matrix for the random effects
 ##' @param Lambdat upper triangular sparse Cholesky factor of the
@@ -123,15 +123,42 @@ plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, 
                        model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))))
 }
 
-## Create a section of Zt from a sparse matrix of indicators, zt, and
-## a dense model matrix, mm. When mm has a single column, just
-## multiply zt by a diagonal matrix. For multiple columns, rBind the
-## products of zt and a diagonal matrix for each column, then
-## rearrange the order of the rows.
-Zsection <- function(zt,mm) {
+## Create the call to model.frame from the matched call with the
+## appropriate substitutions and eliminations
+mkMFCall <- function(mc, form, nobars=FALSE) {
+    m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mc), 0)
+    mc <- mc[c(1, m)]                   # retain only a subset of the arguments
+    mc$drop.unused.levels <- TRUE       # ensure unused levels of factors are dropped
+    mc[[1]] <- quote(model.frame)       # change the call to model.frame
+    form[[3]] <- if (nobars) {
+        if(is.null(nb <- nobars(form[[3]]))) 1 else nb
+    } else subbars(form[[3]])
+    mc$formula <- form
+    mc
+}
+
+##' Create a section of a transposed random effects design matrix
+##'
+##' @param grp grouping factor
+##' @param mm dense model matrix
+##' @return Dense section of a random effects design matrix
+##' @export
+Zsection <- function(grp,mm) {
+                                        # zt is a sparse matrix of indicators to groups.
+                                        # this is an interesting feature of coercing a
+                                        # factor to a sparseMatrix.
+    zt <- as(as.factor(grp), Class="sparseMatrix")
+                                        # if mm has one column, multiply zt by a diagonal
+                                        # matrix.
     if ((m <- ncol(mm)) == 1L) return(zt %*% Diagonal(x=mm))
-    ## Row indices.  If m = 2, nrow(zt) = 10 we want the order 1,11,2,12,3,13,...,20
+                                        # if mm has more than one column, carry on.
+                                        # figure out how to rearrange the order of the
+                                        # rows by calculating row indices (rinds)
+                                        # eg: if m = 2, nrow(zt) = 10, we want the order:
+                                        #     1,11,2,12,3,13,...,20
     rinds <- as.vector(matrix(seq_len(m*nrow(zt)), nrow=m, byrow=TRUE))
+                                        # rBind products of zt and a diagonal matrix
+                                        # for each column, then rearrange rows.
     do.call(rBind,lapply(seq_len(m), function(j) zt %*% Diagonal(x=mm[,j])))[rinds,]
 }
 
@@ -140,6 +167,28 @@ Zsection <- function(zt,mm) {
 ## value of theta for the block, the lower bounds, the block of
 ## Lambdat and the function that updates the block given the section
 ## of theta for this block.
+
+##' Create digonal block on transposed relative covariance factor
+##'
+##' Each random-effects term is represented by diagonal block on
+##' the transposed relative covariance factor. \code{Lambdatblock}
+##' creates such a block, and returns additional information along
+##' with it.
+##'
+##' @param nc Number of columns
+##' @param nl Number of levels
+##' @return A \code{list} with:
+##' \itemize{
+##' \item the block
+##' \item ititial values of theta for the block
+##' \item lower bounds on these initial theta values
+##' \item a function that updates the block given the section
+##'   of theta for this block
+##' }
+##' @export
+##' @examples
+##' (l <- Lambdatblock(2, 3))
+##' within(l, slot(Lambdat, 'x') <- updateLambdatx(as.numeric(10:12)))
 Lambdatblock <- function(nc, nl) {
     if (nc == 1L)
         return(list(theta = 1,
@@ -157,20 +206,6 @@ Lambdatblock <- function(nc, nl) {
              function(theta) theta[Lind]
          })
          )
-}
-
-## Create the call to model.frame from the matched call with the
-## appropriate substitutions and eliminations
-mkMFCall <- function(mc, form, nobars=FALSE) {
-    m <- match(c("data", "subset", "weights", "na.action", "offset"), names(mc), 0)
-    mc <- mc[c(1, m)]                   # retain only a subset of the arguments
-    mc$drop.unused.levels <- TRUE       # ensure unused levels of factors are dropped
-    mc[[1]] <- quote(model.frame)       # change the call to model.frame
-    form[[3]] <- if (nobars) {
-        if(is.null(nb <- nobars(form[[3]]))) 1 else nb
-    } else subbars(form[[3]])
-    mc$formula <- form
-    mc
 }
 
 ##' Make transposed random effects design matrix and relative covariance factor
@@ -193,7 +228,7 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
 ##' }
 ##' @export
 mkLambdat <- function(grps, mms) {
-    ll <- list(Zt = do.call(rBind, mapply(Zsection, lapply(grps, as, Class="sparseMatrix"), mms)))
+    ll <- list(Zt = do.call(rBind, mapply(Zsection, grps, mms)))
     nl <- sapply(grps, function(g) length(levels(g)))
     nc <- sapply(mms, ncol)
     if (all(nc == 1L)) {  # for scalar models use a diagonal Lambdat and a simpler thfun
