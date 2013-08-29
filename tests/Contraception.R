@@ -1,6 +1,5 @@
 options(show.signif.stars = FALSE)
 library(lme4)
-library(nloptwrap)
 library(mlmRev)
 library(lme4pureR)
 Contraception <- within(Contraception, ch <- factor(as.numeric(as.integer(livch)>1L)))

@@ -4,6 +4,10 @@ data(Pastes, package="lme4")
 ll <- plsform(form, Pastes, REML=FALSE)
 devf <- do.call(pls, ll)
 dput(minqa::bobyqa(ll$theta, devf, ll$lower, ll$upper)[c("par","fval")])
-mML <- lme4::lmer(form, Pastes,REML=FALSE)
-dput(lme4::getME(mML, "theta"))
-dput(deviance(mML))
+
+runLmer <- FALSE
+if(runLmer){
+  mML <- lme4::lmer(form, Pastes,REML=FALSE)
+  dput(lme4::getME(mML, "theta"))
+  dput(deviance(mML))
+}
