@@ -118,7 +118,7 @@ plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, 
            REML = as.logical(REML)[1]),
       if (is.null(wts <- model.weights(fr))) wts else list(weights=wts),
       if (is.null(off <- model.offset(fr))) off else list(offset=off),
-      mkLambdat(lapply(rr, function(t) as.factor(eval(t[[3]], fr))),
+      mkRanefRepresentation(lapply(rr, function(t) as.factor(eval(t[[3]], fr))),
                 lapply(rr, function(t)
                        model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))))
 }
@@ -139,10 +139,22 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
 
 ##' Create a section of a transposed random effects design matrix
 ##'
-##' @param grp grouping factor
-##' @param mm dense model matrix
+##' @param grp Grouping factor for a particular random effects term.
+##' @param mm Dense model matrix for a particular random effects term.
 ##' @return Dense section of a random effects design matrix
 ##' @export
+##' @examples
+##' ## number of observations, n = 6
+##' ## number of levels, nl = 3
+##' ## number of columns ('predictors'), nc = 2
+##' (X <- cbind("(Intercept)"=1,x=1:6)) # an intercept in the first column and
+##' 1:6 predictor in the other
+##' (g <- as.factor(letters[rep(1:3,2)])) # grouping factor
+##' nrow(X) # n = 6
+##' nrow(X) == length(g) # and consistent n between X and g
+##' ncol(X) # nc = 2
+##' nlevels(g) # nl = 3
+##' Zsection(g, X)
 Zsection <- function(grp,mm) {
                                         # zt is a sparse matrix of indicators to groups.
                                         # this is an interesting feature of coercing a
@@ -172,11 +184,13 @@ Zsection <- function(grp,mm) {
 ##'
 ##' Each random-effects term is represented by diagonal block on
 ##' the transposed relative covariance factor. \code{Lambdatblock}
-##' creates such a block, and returns additional information along
+##' creates such a block, and returns related information along
 ##' with it.
 ##'
-##' @param nc Number of columns
-##' @param nl Number of levels
+##' @param nc Number of columns in a dense model matrix for a particular
+##' random effects term.
+##' @param nl Number of levels in a grouping factor for a particular
+##' random effects term.
 ##' @return A \code{list} with:
 ##' \itemize{
 ##' \item the block
@@ -185,6 +199,9 @@ Zsection <- function(grp,mm) {
 ##' \item a function that updates the block given the section
 ##'   of theta for this block
 ##' }
+##' @details
+##' FIXME:  change the name of this function to have proper camelCase
+##' FIXME:  change the order of the arguments to better match \code{\link{Zsection}}
 ##' @export
 ##' @examples
 ##' (l <- Lambdatblock(2, 3))
@@ -208,14 +225,24 @@ Lambdatblock <- function(nc, nl) {
          )
 }
 
-##' Make transposed random effects design matrix and relative covariance factor
+##' Make random effects representation
 ##'
-##' Create Lambdat as a ddiMatrix or a dgCMatrix and Zt as a dgCMatrix.
+##' Create all of the elements required to specify the random-effects
+##' structure of a mixed effects model.
 ##' 
-##' @param grps List of factor vectors of length n indicating groups.
-##' @param mms List of model matrices.
-##' @details Each list element in \code{grps} and \code{mms} corresponds to
-##'   a random effects term.
+##' @param grps List of factor vectors of length n indicating groups.  Each
+##' element corresponds to a random effects term.
+##' @param mms List of model matrices.  Each
+##' element corresponds to a random effects term.
+##' @details
+##' The basic idea of this function is to call \code{\link{Zsection}} and
+##' \code{\link{Lambdatblock}} once for each random effects term (ie.
+##' each list element in \code{grps} and \code{mms}). The results of
+##' \code{\link{Zsection}} for each term are \code{rBind}ed together.
+##' The results of \code{\link{Lambdatblock}} are \code{bdiag}ed
+##' together, unless all terms have only a single column ('predictor')
+##' in which case a diagonal matrix is created directly.
+##' 
 ##' @return A \code{list} with:
 ##' \itemize{
 ##' \item \code{Lambdat} Transformed relative covariance factor
@@ -227,11 +254,18 @@ Lambdatblock <- function(nc, nl) {
 ##'   elements of \code{Lambdat}
 ##' }
 ##' @export
-mkLambdat <- function(grps, mms) {
+mkRanefRepresentation <- function(grps, mms) {
+                                        # compute transposed random effects design
+                                        # matrix, Zt (Class="dgCMatrix"), by
+                                        # rBinding the sections for each term.
     ll <- list(Zt = do.call(rBind, mapply(Zsection, grps, mms)))
+                                        # number of levels in each grouping factor
     nl <- sapply(grps, function(g) length(levels(g)))
+                                        # number of columns in each model matrix
     nc <- sapply(mms, ncol)
-    if (all(nc == 1L)) {  # for scalar models use a diagonal Lambdat and a simpler thfun
+                                        # for scalar models use a diagonal Lambdat
+                                        # (Class="ddiMatrix") and a simpler thfun. 
+    if (all(nc == 1L)) {  
         nth <- length(nc)
         ll$lower <- numeric(nth)
         ll$theta <- rep.int(1, nth)
@@ -240,6 +274,8 @@ mkLambdat <- function(grps, mms) {
         ll$thfun <- local({
             nlvs <- nl
             function(theta) rep.int(theta,nlvs)})
+                                        # for vector models bdiag the lambdat
+                                        # blocks together (Class="dgCMatrix")
     } else {
         zz <- mapply(Lambdatblock, nc, nl, SIMPLIFY=FALSE)
         ll$Lambdat <- do.call(bdiag, lapply(zz, "[[", "Lambdat"))

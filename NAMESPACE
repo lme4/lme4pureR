@@ -1,5 +1,5 @@
 export(Lambdatblock)
-export(mkLambdat)
+export(mkRanefRepresentation)
 export(pirls)
 export(pls)
 export(plsform)
