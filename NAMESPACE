@@ -1,3 +1,4 @@
+export(mkLambdat)
 export(pirls)
 export(pls)
 export(plsform)

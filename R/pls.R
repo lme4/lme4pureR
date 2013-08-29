@@ -173,8 +173,25 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
     mc
 }
 
-## Create Lambdat as a ddiMatrix or a dgCMatrix and Zt as a dgCMatrix.
-## The list that is returned includes theta, lower, upper and thfun.
+##' Make transposed random effects design matrix and relative covariance factor
+##'
+##' Create Lambdat as a ddiMatrix or a dgCMatrix and Zt as a dgCMatrix.
+##' 
+##' @param grps List of factor vectors of length n indicating groups.
+##' @param mms List of model matrices.
+##' @details Each list element in \code{grps} and \code{mms} corresponds to
+##'   a random effects term.
+##' @return A \code{list} with:
+##' \itemize{
+##' \item \code{Lambdat} Transformed relative covariance factor
+##' \item \code{Zt} Transformed random effects design matrix
+##' \item \code{theta} Vector of covariance parameters
+##' \item \code{lower} Vector of lower bounds on the covariance parameters
+##' \item \code{upper} Vector of upper bounds on the covariance parameters
+##' \item \code{thfun} A function that maps \code{theta} onto the non-zero
+##'   elements of \code{Lambdat}
+##' }
+##' @export
 mkLambdat <- function(grps, mms) {
     ll <- list(Zt = do.call(rBind, mapply(Zsection, lapply(grps, as, Class="sparseMatrix"), mms)))
     nl <- sapply(grps, function(g) length(levels(g)))
