@@ -144,11 +144,11 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
 ##' @return Dense section of a random effects design matrix
 ##' @export
 ##' @examples
+##' ## consider a term (x | g) with:
 ##' ## number of observations, n = 6
 ##' ## number of levels, nl = 3
 ##' ## number of columns ('predictors'), nc = 2
-##' (X <- cbind("(Intercept)"=1,x=1:6)) # an intercept in the first column and
-##' 1:6 predictor in the other
+##' (X <- cbind("(Intercept)"=1,x=1:6)) # an intercept in the first column and 1:6 predictor in the other
 ##' (g <- as.factor(letters[rep(1:3,2)])) # grouping factor
 ##' nrow(X) # n = 6
 ##' nrow(X) == length(g) # and consistent n between X and g
@@ -183,14 +183,16 @@ Zsection <- function(grp,mm) {
 ##' Create digonal block on transposed relative covariance factor
 ##'
 ##' Each random-effects term is represented by diagonal block on
-##' the transposed relative covariance factor. \code{Lambdatblock}
+##' the transposed relative covariance factor. \code{LambdatBlock}
 ##' creates such a block, and returns related information along
 ##' with it.
 ##'
-##' @param nc Number of columns in a dense model matrix for a particular
-##' random effects term.
 ##' @param nl Number of levels in a grouping factor for a particular
-##' random effects term.
+##' random effects term (the number of levels in the \code{grp} argument
+##' in \code{\link{Zsection}}).
+##' @param nc Number of columns in a dense model matrix for a particular
+##' random effects term (the number of columns in the \code{mm} argument
+##' in \code{\link{Zsection}}).
 ##' @return A \code{list} with:
 ##' \itemize{
 ##' \item the block
@@ -201,12 +203,11 @@ Zsection <- function(grp,mm) {
 ##' }
 ##' @details
 ##' FIXME:  change the name of this function to have proper camelCase
-##' FIXME:  change the order of the arguments to better match \code{\link{Zsection}}
 ##' @export
 ##' @examples
-##' (l <- Lambdatblock(2, 3))
+##' (l <- LambdatBlock(2, 3))
 ##' within(l, slot(Lambdat, 'x') <- updateLambdatx(as.numeric(10:12)))
-Lambdatblock <- function(nc, nl) {
+LambdatBlock <- function(nl, nc) {
     if (nc == 1L)
         return(list(theta = 1,
                     lower = 0,
@@ -236,10 +237,10 @@ Lambdatblock <- function(nc, nl) {
 ##' element corresponds to a random effects term.
 ##' @details
 ##' The basic idea of this function is to call \code{\link{Zsection}} and
-##' \code{\link{Lambdatblock}} once for each random effects term (ie.
+##' \code{\link{LambdatBlock}} once for each random effects term (ie.
 ##' each list element in \code{grps} and \code{mms}). The results of
 ##' \code{\link{Zsection}} for each term are \code{rBind}ed together.
-##' The results of \code{\link{Lambdatblock}} are \code{bdiag}ed
+##' The results of \code{\link{LambdatBlock}} are \code{bdiag}ed
 ##' together, unless all terms have only a single column ('predictor')
 ##' in which case a diagonal matrix is created directly.
 ##' 
@@ -277,7 +278,7 @@ mkRanefRepresentation <- function(grps, mms) {
                                         # for vector models bdiag the lambdat
                                         # blocks together (Class="dgCMatrix")
     } else {
-        zz <- mapply(Lambdatblock, nc, nl, SIMPLIFY=FALSE)
+        zz <- mapply(LambdatBlock, nl, nc, SIMPLIFY=FALSE)
         ll$Lambdat <- do.call(bdiag, lapply(zz, "[[", "Lambdat"))
         th <- lapply(zz, "[[", "theta")
         ll$theta <- unlist(th)

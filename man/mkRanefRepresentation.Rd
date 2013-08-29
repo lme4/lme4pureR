@@ -29,11 +29,11 @@
 }
 \details{
   The basic idea of this function is to call
-  \code{\link{Zsection}} and \code{\link{Lambdatblock}}
+  \code{\link{Zsection}} and \code{\link{LambdatBlock}}
   once for each random effects term (ie. each list element
   in \code{grps} and \code{mms}). The results of
   \code{\link{Zsection}} for each term are \code{rBind}ed
-  together. The results of \code{\link{Lambdatblock}} are
+  together. The results of \code{\link{LambdatBlock}} are
   \code{bdiag}ed together, unless all terms have only a
   single column ('predictor') in which case a diagonal
   matrix is created directly.
