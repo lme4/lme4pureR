@@ -1,8 +1,8 @@
-\name{LambdatBlock}
-\alias{LambdatBlock}
+\name{blockLambdat}
+\alias{blockLambdat}
 \title{Create digonal block on transposed relative covariance factor}
 \usage{
-  LambdatBlock(nl, nc)
+  blockLambdat(nl, nc)
 }
 \arguments{
   \item{nl}{Number of levels in a grouping factor for a
@@ -23,15 +23,11 @@
 \description{
   Each random-effects term is represented by diagonal block
   on the transposed relative covariance factor.
-  \code{LambdatBlock} creates such a block, and returns
+  \code{blockLambdat} creates such a block, and returns
   related information along with it.
 }
-\details{
-  FIXME: change the name of this function to have proper
-  camelCase
-}
 \examples{
-(l <- LambdatBlock(2, 3))
+(l <- blockLambdat(2, 3))
 within(l, slot(Lambdat, 'x') <- updateLambdatx(as.numeric(10:12)))
 }
 
