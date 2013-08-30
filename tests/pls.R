@@ -5,7 +5,7 @@ tol <- 1e-3
 # sleepstudy
 form <- Reaction ~ Days + (Days|Subject)
 data(sleepstudy, package="lme4")
-ll <- plsform(form, sleepstudy, REML=FALSE)
+ll <- plsform(form, data = sleepstudy, REML=FALSE)
 devf <- do.call(pls, ll)
 opt <- minqa::bobyqa(ll$theta, devf, ll$lower, ll$upper)[c("par","fval")]
 if(lmerReproduce){
@@ -23,7 +23,7 @@ all.equal(fval, opt$fval, tolerance = tol)
 # Pastes
 form <- strength ~ (1|sample) + (1|batch)
 data(Pastes, package="lme4")
-ll <- plsform(form, Pastes, REML=FALSE)
+ll <- plsform(form, data = Pastes, REML=FALSE)
 devf <- do.call(pls, ll)
 opt <- minqa::bobyqa(ll$theta, devf, ll$lower, ll$upper)[c("par","fval")]
 if(lmerReproduce){
@@ -40,7 +40,7 @@ all.equal(fval, opt$fval, tolerance = tol)
 # Dyestuff
 form <- Yield ~ 1|Batch
 data(Dyestuff,package="lme4")
-ll <- plsform(form, Dyestuff, REML=FALSE)
+ll <- plsform(form, data = Dyestuff, REML=FALSE)
 devf <- do.call(pls, ll)
 opt <- minqa::bobyqa(ll$theta, devf, ll$lower, ll$upper)[c("par","fval")]
 if(lmerReproduce){

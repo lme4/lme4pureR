@@ -87,7 +87,7 @@ pls <- function(X,y,Zt,Lambdat,thfun,weights,
     })
 }
 
-##' Create linear mixed model deviance function from formula/data specification
+##' Create the structure of a linear mixed model from formula/data specification
 ##'
 ##' A pure \code{R} implementation of the
 ##' penalized least squares (PLS) approach to evaluation of the deviance or the
@@ -96,31 +96,90 @@ pls <- function(X,y,Zt,Lambdat,thfun,weights,
 ##' @param formula a two-sided model formula with random-effects terms
 ##'   and, optionally, fixed-effects terms.
 ##' @param data a data frame in which to evaluate the variables from \code{form}
+##' @param REML calculate REML deviance?
 ##' @param weights prior weights
 ##' @param offset offset
-##' @param REML calculate REML deviance?
 ##' @param sparseX should X, the model matrix for the fixed-effects coefficients be sparse?
 ##' @param ... additional arguments
 ##' @keywords models
 ##'
-##' @return a function that evaluates the deviance or REML criterion
+##' @return a \code{list} with:
+##' \itemize{
+##' \item \code{X} Fixed effects design (model) matrix
+##' \item \code{y} Observed response vector
+##' \item \code{fr} Model frame
+##' \item \code{call} Matched call
+##' \item \code{REML} Logical indicating REML or not
+##' \item \code{weights} Prior weights or \code{NULL}
+##' \item \code{offset} Prior offset term or \code{NULL}
+##' \item \code{Zt} Transposed random effects design matrix
+##' \item \code{Lambdat} Transposed relative covariance factor
+##' \item \code{theta} Vector of covariance parameters
+##' \item \code{lower} Vector of lower bounds for \code{theta}
+##' \item \code{upper} Vector of upper bounds for \code{theta}
+##' \item \code{thfun} A function that maps \code{theta} into the structural non-zero
+##' elements of \code{Lambdat}, which are stored in \code{slot(Lambdat, 'x')}
+##' }
 ##' @export
-plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, ...)  {
+##' @examples
+##' form <- Reaction ~ Days + (Days|Subject)
+##' data(sleepstudy, package="lme4")
+##' ll <- plsform(form, sleepstudy, REML=FALSE)
+##' names(ll)
+plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, family = gaussian, ...)  {
     stopifnot(inherits(formula, "formula"), length(formula) == 3L,
               length(rr <- findbars(formula[[3]])) > 0L)
     mc <- match.call()
-    fr <- eval(mkMFCall(mc, formula), parent.frame())      # evaluate the model frame
-    fr1 <- eval(mkMFCall(mc, formula, TRUE), parent.frame())
+    fr <- eval(mkMFCall(mc, formula), parent.frame())         # evaluate the model frame
+    fr1 <- eval(mkMFCall(mc, formula, TRUE), parent.frame())  # evaluate the model
+                                                              # frame without bars
     trms <- attr(fr, "terms") <- attr(fr1, "terms")
+    rho <- initializeResp(fr, REML=REML, family=family) # FIXME: make use of etastart and mustart
     c(list(X = if (sparseX) sparse.model.matrix(trms,fr) else model.matrix(trms,fr),
-           y = model.response(fr, type="numeric"),
+           y = rho$y,
            fr = fr, call = mc,
            REML = as.logical(REML)[1]),
-      if (is.null(wts <- model.weights(fr))) wts else list(weights=wts),
-      if (is.null(off <- model.offset(fr))) off else list(offset=off),
+      if (is.null(wts <- rho$weights)) wts else list(weights=wts),
+      if (is.null(off <- rho$offset)) off else list(offset=off),
       mkRanefRepresentation(lapply(rr, function(t) as.factor(eval(t[[3]], fr))),
                 lapply(rr, function(t)
                        model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))))
+}
+
+initializeResp <- function(fr, REML, family){
+    # taken mostly from mkRespMod
+    if(!inherits(family,"character")) family <- as.function(family)
+    if(!inherits(family,"family")) family <- family()
+    y <- model.response(fr)
+    offset <- model.offset(fr)
+    weights <- model.weights(fr)
+    n <- nrow(fr)
+    etastart_update <- model.extract(fr, "etastart")
+    if(length(dim(y)) == 1) {
+    ## avoid problems with 1D arrays, but keep names
+        nm <- rownames(y)
+        dim(y) <- NULL
+        if(!is.null(nm)) names(y) <- nm
+    }
+    rho <- new.env()
+    rho$y <- if (is.null(y)) numeric(0) else y
+    if (!is.null(REML)) rho$REML <- REML
+    rho$etastart <- fr$etastart
+    rho$mustart <- fr$mustart
+    if (!is.null(offset)) {
+        if (length(offset) == 1L) offset <- rep.int(offset, n)
+        stopifnot(length(offset) == n)
+        rho$offset <- unname(offset)
+    } else rho$offset <- rep.int(0, n)
+    if (!is.null(weights)) {
+        stopifnot(length(weights) == n, all(weights >= 0))
+        rho$weights <- unname(weights)
+    } else rho$weights <- rep.int(1, n)
+    stopifnot(inherits(family, "family"))
+    rho$nobs <- n
+    eval(family$initialize, rho)
+    family$initialize <- NULL     # remove clutter from str output
+    rho
 }
 
 ## Create the call to model.frame from the matched call with the

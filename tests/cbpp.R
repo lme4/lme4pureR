@@ -5,6 +5,12 @@ library(lme4pureR)
 # model structure
 form <- cbind(incidence, size - incidence) ~ period + (1 | herd)
 glmod <- glFormula(form, cbpp, binomial)
+do.call(mkGlmerDevfun, glmod)
+data(cbpp, package = 'lme4')
+ll <- plsform(form, data = cbpp, family = binomial)
+devf <- do.call(pirls, c(ll, list(family=binomial)))
+devf(c(1,0,0,0,0))
+bobyqa(c(1,0,0,0,0), devf)
 
 # get initial values
 gm1 <- glm(nobars(form), binomial, cbpp)
