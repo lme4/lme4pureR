@@ -153,6 +153,7 @@ initializeResp <- function(fr, REML, family){
     if(!inherits(family,"character")) family <- as.function(family)
     if(!inherits(family,"family")) family <- family()
     y <- model.response(fr)
+### Why consider there here?  They are handled in plsform.
     offset <- model.offset(fr)
     weights <- model.weights(fr)
     n <- nrow(fr)
@@ -163,6 +164,8 @@ initializeResp <- function(fr, REML, family){
         dim(y) <- NULL
         if(!is.null(nm)) names(y) <- nm
     }
+### I really wish that the glm families in R were cleaned up.  All of
+### this is such an ugly hack, just to handle one special case for the binomial
     rho <- new.env()
     rho$y <- if (is.null(y)) numeric(0) else y
     if (!is.null(REML)) rho$REML <- REML
