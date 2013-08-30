@@ -29,7 +29,9 @@ NULL
 ##' @return a function that evaluates the deviance or REML criterion
 ##' @export
 pls <- function(X,y,Zt,Lambdat,thfun,weights,
-                offset = numeric(n),REML = TRUE,...) {
+                offset = numeric(n),REML = TRUE,...)
+{
+    stopifnot(is.matrix(X), is.matrix(Zt), is.matrix(Lambdat))
     n <- length(y); p <- ncol(X); q <- nrow(Zt)
     stopifnot(nrow(X) == n, ncol(Zt) == n,
               nrow(Lambdat) == q, ncol(Lambdat) == q, is.function(thfun))
@@ -242,7 +244,7 @@ Zsection <- function(grp,mm) {
 ##' Create digonal block on transposed relative covariance factor
 ##'
 ##' Each random-effects term is represented by diagonal block on
-##' the transposed relative covariance factor. \code{LambdatBlock}
+##' the transposed relative covariance factor. \code{blockLambdat}
 ##' creates such a block, and returns related information along
 ##' with it.
 ##'
@@ -260,13 +262,11 @@ Zsection <- function(grp,mm) {
 ##' \item a function that updates the block given the section
 ##'   of theta for this block
 ##' }
-##' @details
-##' FIXME:  change the name of this function to have proper camelCase
 ##' @export
 ##' @examples
-##' (l <- LambdatBlock(2, 3))
+##' (l <- blockLambdat(2, 3))
 ##' within(l, slot(Lambdat, 'x') <- updateLambdatx(as.numeric(10:12)))
-LambdatBlock <- function(nl, nc) {
+blockLambdat <- function(nl, nc) {
     if (nc == 1L)
         return(list(theta = 1,
                     lower = 0,
@@ -289,20 +289,20 @@ LambdatBlock <- function(nl, nc) {
 ##'
 ##' Create all of the elements required to specify the random-effects
 ##' structure of a mixed effects model.
-##' 
+##'
 ##' @param grps List of factor vectors of length n indicating groups.  Each
 ##' element corresponds to a random effects term.
 ##' @param mms List of model matrices.  Each
 ##' element corresponds to a random effects term.
 ##' @details
 ##' The basic idea of this function is to call \code{\link{Zsection}} and
-##' \code{\link{LambdatBlock}} once for each random effects term (ie.
+##' \code{\link{blockLambdat}} once for each random effects term (ie.
 ##' each list element in \code{grps} and \code{mms}). The results of
 ##' \code{\link{Zsection}} for each term are \code{rBind}ed together.
-##' The results of \code{\link{LambdatBlock}} are \code{bdiag}ed
+##' The results of \code{\link{blockLambdat}} are \code{bdiag}ed
 ##' together, unless all terms have only a single column ('predictor')
 ##' in which case a diagonal matrix is created directly.
-##' 
+##'
 ##' @return A \code{list} with:
 ##' \itemize{
 ##' \item \code{Lambdat} Transformed relative covariance factor
@@ -324,20 +324,20 @@ mkRanefRepresentation <- function(grps, mms) {
                                         # number of columns in each model matrix
     nc <- sapply(mms, ncol)
                                         # for scalar models use a diagonal Lambdat
-                                        # (Class="ddiMatrix") and a simpler thfun. 
-    if (all(nc == 1L)) {  
+                                        # (Class="ddiMatrix") and a simpler thfun.
+    if (all(nc == 1L)) {
         nth <- length(nc)
         ll$lower <- numeric(nth)
         ll$theta <- rep.int(1, nth)
         ll$upper <- rep.int(Inf, nth)
-        ll$Lambdat <- Diagonal(x=rep(1,sum(nl)))
+        ll$Lambdat <- Diagonal(x= rep.int(1, sum(nl)))
         ll$thfun <- local({
             nlvs <- nl
             function(theta) rep.int(theta,nlvs)})
                                         # for vector models bdiag the lambdat
                                         # blocks together (Class="dgCMatrix")
     } else {
-        zz <- mapply(LambdatBlock, nl, nc, SIMPLIFY=FALSE)
+        zz <- mapply(blockLambdat, nl, nc, SIMPLIFY=FALSE)
         ll$Lambdat <- do.call(bdiag, lapply(zz, "[[", "Lambdat"))
         th <- lapply(zz, "[[", "theta")
         ll$theta <- unlist(th)
