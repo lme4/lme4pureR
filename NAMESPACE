@@ -1,4 +1,4 @@
-export(LambdatBlock)
+export(blockLambdat)
 export(mkRanefRepresentation)
 export(pirls)
 export(pls)

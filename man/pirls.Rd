@@ -3,10 +3,10 @@
 \title{Create an approximate deviance evaluation function for GLMMs using Laplace
 Must use the flexLambda branch of lme4}
 \usage{
-  pirls(glmod, y, eta, family = binomial,
-    weights = rep(1, length(y)),
-    offset = rep(0, length(y)), tol = 10^-6, npirls = 30,
-    nAGQ = 1, verbose = 0L)
+  pirls(X, y, Zt, Lambdat, thfun, theta, weights,
+    offset = numeric(n), eta = numeric(n),
+    family = binomial, tol = 10^-6, npirls = 30,
+    nstephalf = 10, nAGQ = 1, verbose = 0L, ...)
 }
 \arguments{
   \item{glmod}{output of \code{glFormula}}
@@ -32,11 +32,8 @@ Must use the flexLambda branch of lme4}
   \item{verbose}{verbose}
 }
 \value{
-  the laplace approximated deviance with a bunch of
-  attributes: \itemize{ \item[pdev] penalized deviance at
-  convergence \item[beta] fixed effects at convergence
-  (\code{pirls0} only) \item[u] spherized random effects at
-  convergence }
+  A function for evaluating the GLMM Laplace approximated
+  deviance
 }
 \description{
   A pure \code{R} implementation of the penalized

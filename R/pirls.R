@@ -30,7 +30,7 @@
 pirls <- function(X,y,Zt,Lambdat,thfun,theta,
                   weights,offset=numeric(n),
                   eta=numeric(n),family=binomial,
-                  tol = 10^-6, npirls = 30,nAGQ = 1,verbose=0L,
+                  tol = 10^-6, npirls = 30,nstephalf = 10,nAGQ = 1,verbose=0L,
                   ...){
     # FIXME: bad default starting value for eta
 
@@ -101,7 +101,7 @@ pirls <- function(X,y,Zt,Lambdat,thfun,theta,
                     }
                                         # step-halving
                     if(ucden > olducden){
-                        for(j in 1:10){
+                        for(j in 1:nstephalf){
                             ucden <- updatemu(u + (delu <- delu/2))
                             if (verbose > 1L) {
                                 cat(sprintf("%6.4f: %10.3f\n", 1/2^j, ucden))

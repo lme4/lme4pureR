@@ -3,7 +3,7 @@
 \title{Create the structure of a linear mixed model from formula/data specification}
 \usage{
   plsform(formula, data, REML = TRUE, weights, offset,
-    sparseX = FALSE, ...)
+    sparseX = FALSE, family = gaussian, ...)
 }
 \arguments{
   \item{formula}{a two-sided model formula with
@@ -29,15 +29,17 @@
   effects design (model) matrix \item \code{y} Observed
   response vector \item \code{fr} Model frame \item
   \code{call} Matched call \item \code{REML} Logical
-  indicating REML or not \item \code{Zt} Transposed random
-  effects design matrix \item \code{Lambdat} Transposed
-  relative covariance factor \item \code{theta} Vector of
-  covariance parameters \item \code{lower} Vector of lower
-  bounds for \code{theta} \item \code{upper} Vector of
-  upper bounds for \code{theta} \item \code{thfun} A
-  function that maps \code{theta} into the structural
-  non-zero elements of \code{Lambdat}, which are stored in
-  \code{slot(Lambdat, 'x')} }
+  indicating REML or not \item \code{weights} Prior weights
+  or \code{NULL} \item \code{offset} Prior offset term or
+  \code{NULL} \item \code{Zt} Transposed random effects
+  design matrix \item \code{Lambdat} Transposed relative
+  covariance factor \item \code{theta} Vector of covariance
+  parameters \item \code{lower} Vector of lower bounds for
+  \code{theta} \item \code{upper} Vector of upper bounds
+  for \code{theta} \item \code{thfun} A function that maps
+  \code{theta} into the structural non-zero elements of
+  \code{Lambdat}, which are stored in \code{slot(Lambdat,
+  'x')} }
 }
 \description{
   A pure \code{R} implementation of the penalized least
