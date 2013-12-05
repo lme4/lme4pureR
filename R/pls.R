@@ -31,7 +31,8 @@ NULL
 pls <- function(X,y,Zt,Lambdat,thfun,weights,
                 offset = numeric(n),REML = TRUE,...)
 {
-    stopifnot(is.matrix(X), is.matrix(Zt), is.matrix(Lambdat))
+    # SW: how to test for sparse matrices, without specifying the specific class?
+    stopifnot(is.matrix(X)) #  is.matrix(Zt), is.matrix(Lambdat))
     n <- length(y); p <- ncol(X); q <- nrow(Zt)
     stopifnot(nrow(X) == n, ncol(Zt) == n,
               nrow(Lambdat) == q, ncol(Lambdat) == q, is.function(thfun))
@@ -44,20 +45,20 @@ pls <- function(X,y,Zt,Lambdat,thfun,weights,
     XtWy <- crossprod(WX, Wy)
     ZtWX <- ZtW %*% WX
     ZtWy <- ZtW %*% Wy
-    rm(WX,Wy,ZtW)
+    rm(WX,Wy)
     local({                             # mutable values stored in local environment
         b <- numeric(q)                 # conditional mode of random effects
         beta <- numeric(p)              # conditional estimate of fixed-effects
         cu <- numeric(q)                # intermediate solution
         DD <- XtWX                      # down-dated XtWX
-        L <- Cholesky(tcrossprod(Lambdat %*% Zt), LDL = FALSE, Imult=1)
+        L <- Cholesky(tcrossprod(Lambdat %*% ZtW), LDL = FALSE, Imult=1)
         Lambdat <- Lambdat              # stored here b/c x slot will be updated
         mu <- numeric(n)                # conditional mean of response
         RZX <- matrix(0,nrow=q,ncol=p)  # intermediate matrix in solution
         u <- numeric(q)                 # conditional mode of spherical random effects
         function(theta) {
             Lambdat@x[] <<- thfun(theta)
-            L <<- update(L, Lambdat %*% Zt, mult = 1)
+            L <<- update(L, Lambdat %*% ZtW, mult = 1)
                                         # solve eqn. 30
             cu[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWy, system="P"),
                                      system="L"))
@@ -85,6 +86,7 @@ pls <- function(X,y,Zt,Lambdat,thfun,weights,
             attributes(ld) <- NULL
                                         # profiled deviance or REML criterion
             ld + fn*(1 + log(2*pi*pwrss) - log(fn))
+            #ld + fn*(1 + log(2*pi*pwrss))
         }
     })
 }
@@ -133,16 +135,15 @@ plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, 
               length(rr <- findbars(formula[[3]])) > 0L)
     mc <- match.call()
     fr <- eval(mkMFCall(mc, formula), parent.frame())         # evaluate the model frame
-    fr1 <- eval(mkMFCall(mc, formula, TRUE), parent.frame())  # evaluate the model
-                                                              # frame without bars
+    fr1 <- eval(mkMFCall(mc, formula, TRUE), parent.frame())  # evaluate the model frame sans bars
     trms <- attr(fr, "terms") <- attr(fr1, "terms")
     rho <- initializeResp(fr, REML=REML, family=family) # FIXME: make use of etastart and mustart
     c(list(X = if (sparseX) sparse.model.matrix(trms,fr) else model.matrix(trms,fr),
            y = rho$y,
            fr = fr, call = mc,
            REML = as.logical(REML)[1]),
-      if (is.null(wts <- rho$weights)) wts else list(weights=wts),
-      if (is.null(off <- rho$offset)) off else list(offset=off),
+      if (is.null(wts <- model.weights(fr))) wts else list(weights=wts),
+      if (is.null(off <- model.offset(fr))) off else list(offset=off),
       mkRanefRepresentation(lapply(rr, function(t) as.factor(eval(t[[3]], fr))),
                 lapply(rr, function(t)
                        model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))))
@@ -154,8 +155,8 @@ initializeResp <- function(fr, REML, family){
     if(!inherits(family,"family")) family <- family()
     y <- model.response(fr)
 ### Why consider there here?  They are handled in plsform.
-    offset <- model.offset(fr)
-    weights <- model.weights(fr)
+    #offset <- model.offset(fr)
+    #weights <- model.weights(fr)
     n <- nrow(fr)
     etastart_update <- model.extract(fr, "etastart")
     if(length(dim(y)) == 1) {
@@ -171,15 +172,15 @@ initializeResp <- function(fr, REML, family){
     if (!is.null(REML)) rho$REML <- REML
     rho$etastart <- fr$etastart
     rho$mustart <- fr$mustart
-    if (!is.null(offset)) {
-        if (length(offset) == 1L) offset <- rep.int(offset, n)
-        stopifnot(length(offset) == n)
-        rho$offset <- unname(offset)
-    } else rho$offset <- rep.int(0, n)
-    if (!is.null(weights)) {
-        stopifnot(length(weights) == n, all(weights >= 0))
-        rho$weights <- unname(weights)
-    } else rho$weights <- rep.int(1, n)
+    #if (!is.null(offset)) {
+    #    if (length(offset) == 1L) offset <- rep.int(offset, n)
+    #    stopifnot(length(offset) == n)
+    #    rho$offset <- unname(offset)
+    #} else rho$offset <- rep.int(0, n)
+    #if (!is.null(weights)) {
+    #    stopifnot(length(weights) == n, all(weights >= 0))
+    #    rho$weights <- unname(weights)
+    #} else rho$weights <- rep.int(1, n)
     stopifnot(inherits(family, "family"))
     rho$nobs <- n
     eval(family$initialize, rho)
