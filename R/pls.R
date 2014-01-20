@@ -221,23 +221,28 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
 ##' nlevels(g) # nl = 3
 ##' Zsection(g, X)
 Zsection <- function(grp,mm) {
-                                        # zt is a sparse matrix of indicators to groups.
-                                        # this is an interesting feature of coercing a
-                                        # factor to a sparseMatrix.
-    zt <- as(as.factor(grp), Class="sparseMatrix")
-                                        # if mm has one column, multiply zt by a diagonal
-                                        # matrix.
-    if ((m <- ncol(mm)) == 1L) return(zt %*% Diagonal(x=mm))
-                                        # if mm has more than one column, carry on.
-                                        # figure out how to rearrange the order of the
-                                        # rows by calculating row indices (rinds)
-                                        # eg: if m = 2, nrow(zt) = 10, we want the order:
-                                        #     1,11,2,12,3,13,...,20
-    rinds <- as.vector(matrix(seq_len(m*nrow(zt)), nrow=m, byrow=TRUE))
-                                        # rBind products of zt and a diagonal matrix
-                                        # for each column, then rearrange rows.
-    do.call(rBind,lapply(seq_len(m), function(j) zt %*% Diagonal(x=mm[,j])))[rinds,]
+    Jt <- as(as.factor(grp), Class="sparseMatrix")
+    KhatriRao(Jt,t(mm))
 }
+## Zsection <- function(grp,mm) {
+##                                         # Jt is a sparse matrix of indicators to groups.
+##                                         # this is an interesting feature of coercing a
+##                                         # factor to a sparseMatrix.
+##     Jt <- as(as.factor(grp), Class="sparseMatrix")
+##                                         # if mm has one column, multiply zt by a diagonal
+##                                         # matrix.
+##     if ((m <- ncol(mm)) == 1L) return(Jt %*% Diagonal(x=mm))
+##                                         # if mm has more than one column, carry on.
+##                                         # figure out how to rearrange the order of the
+##                                         # rows by calculating row indices (rinds)
+##                                         # eg: if m = 2, nrow(Jt) = 10, we want the order:
+##                                         #     1,11,2,12,3,13,...,20
+##     rinds <- as.vector(matrix(seq_len(m*nrow(Jt)), nrow=m, byrow=TRUE))
+##                                         # rBind products of Jt and a diagonal matrix
+##                                         # for each column, then rearrange rows.
+##     do.call(rBind,lapply(seq_len(m), function(j) Jt %*% Diagonal(x=mm[,j])))[rinds,]
+## }
+
 
 ## Create the diagonal block on Lambdat for a random-effects term with
 ## nc columns and nl levels.  The value is a list with the starting
@@ -276,8 +281,10 @@ blockLambdat <- function(nl, nc) {
                     lower = 0,
                     Lambdat = Diagonal(x = rep(1, nl)),
                     updateLambdatx=local({nl <- nl;function(theta) rep.int(theta[1],nl)})))
-    m <- diag(nrow=nc, ncol=nc); ut <- upper.tri(m, diag=TRUE)
-    theta <- m[ut]; m[ut] <- seq_along(theta)
+    m <- diag(nrow=nc, ncol=nc)
+    ut <- upper.tri(m, diag=TRUE)
+    theta <- m[ut]
+    m[ut] <- seq_along(theta)
     Lambdat <- do.call(bdiag, lapply(seq_len(nl), function(i) m))
     list(theta=theta,
          lower=ifelse(theta,0,-Inf),
@@ -319,7 +326,7 @@ blockLambdat <- function(nl, nc) {
 ##' }
 ##' @export
 mkRanefRepresentation <- function(grps, mms) {
-                                        # compute transposed random effects design
+                                        # compute transposed random effects model
                                         # matrix, Zt (Class="dgCMatrix"), by
                                         # rBinding the sections for each term.
     ll <- list(Zt = do.call(rBind, mapply(Zsection, grps, mms)))
