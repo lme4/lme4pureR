@@ -106,7 +106,7 @@ pirls <- function(X,y,Zt,Lambdat,thfun,theta,
                             if (verbose > 1L) {
                                 cat(sprintf("%6.4f: %10.3f\n", 1/2^j, ucden))
                             }
-                            if(ucden < olducden) break
+                            if(ucden <= olducden) break
                         }
                         if(ucden > olducden) stop("Step-halving failed")
                     }
