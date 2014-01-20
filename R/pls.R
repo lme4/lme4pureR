@@ -282,16 +282,31 @@ blockLambdat <- function(nl, nc) {
                     lower = 0,
                     Lambdat = Diagonal(x = rep(1, nl)),
                     updateLambdatx=local({nl <- nl;function(theta) rep.int(theta[1],nl)})))
+                                        # create template matrix
     m <- diag(nrow=nc, ncol=nc)
+                                        # identify its upper triangular elements
     ut <- upper.tri(m, diag=TRUE)
+                                        # the initial theta values are these upper
+                                        # triangular elements
     theta <- m[ut]
+                                        # put the indices of theta in the upper
+                                        # triangle of the template
     m[ut] <- seq_along(theta)
-    Lambdat <- do.call(bdiag, lapply(seq_len(nl), function(i) m))
+                                        # repeat the template (once for each level)
+                                        # to create a sparse block diagonal matrix
+    Lambdat <- do.call(bdiag, rep(list(m), nl))
+                                        # store the indices mapping theta to the
+                                        # structural non-zeros of lambdat
+    Lind <- Lambdat@x
+                                        # save the initial theta values in their
+                                        # appropriate locations in Lambdat
+    Lambdat@x <- theta[Lind]
+    
     list(theta=theta,
          lower=ifelse(theta,0,-Inf),
          Lambdat=Lambdat,
          updateLambdatx = local({
-             Lind <- Lambdat@x
+             Lind <- Lind
              function(theta) theta[Lind]
          })
          )
