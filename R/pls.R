@@ -206,7 +206,8 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
 ##'
 ##' @param grp Grouping factor for a particular random effects term.
 ##' @param mm Dense model matrix for a particular random effects term.
-##' @return Dense section of a random effects design matrix
+##' @return Section of a random effects design matrix corresponding to a
+##' particular term.
 ##' @export
 ##' @examples
 ##' ## consider a term (x | g) with:
