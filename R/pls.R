@@ -282,6 +282,35 @@ blockLambdat <- function(nl, nc) {
                     lower = 0,
                     Lambdat = Diagonal(x = rep(1, nl)),
                     updateLambdatx=local({nl <- nl;function(theta) rep.int(theta[1],nl)})))
+
+                                        # generate row (i) and column (j) indices
+                                        # of the upper triangular template matrix
+    i <- sequence(nc); j <- rep(1:nc,1:nc)
+                                        # generate theta:
+                                        # 1) 1's along the diagonal (i.e. when i==j)
+                                        # 2) 0's above the diagonal (i.e. when i!=j)
+    theta <- 1*(i==j)
+                                        # create the template with the triplet: (i,j,theta)
+    template <- sparseMatrix(i=i,j=j,x=theta)
+                                        # put the blocks together
+    LambdaBlock <- .bdiag(rep(list(template),nl))
+    
+    list(theta=theta,
+         lower=ifelse(theta,0,-Inf),
+         Lambdat=Lambdat,
+         updateLambdatx = local({
+             Lind <- rep(seq_along(i),nl)
+             function(theta) theta[Lind]
+         })
+         )
+}
+
+blockLambdat <- function(nl, nc) {
+    if (nc == 1L)
+        return(list(theta = 1,
+                    lower = 0,
+                    Lambdat = Diagonal(x = rep(1, nl)),
+                    updateLambdatx=local({nl <- nl;function(theta) rep.int(theta[1],nl)})))
                                         # create template matrix
     m <- diag(nrow=nc, ncol=nc)
                                         # identify its upper triangular elements
@@ -311,6 +340,7 @@ blockLambdat <- function(nl, nc) {
          })
          )
 }
+
 
 ##' Make random effects representation
 ##'
