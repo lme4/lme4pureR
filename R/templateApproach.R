@@ -1,9 +1,39 @@
+##' Random lmer-type model simulation
+##' @export
+rLmer <- function(grp, mmRE, mmFE) message("not yet written")
+
+
+##' Make random effects structures
+##' @export
+mkRanefStructures <- function(grp, mm){
+                                        # checking things are OK
+    if(!is.list(grp)) grp <- list(grp)
+    if(!is.list(mm)) mm <- list(mm)
+    grp <- lapply(grp, as.factor)
+    
+
+    nl <- sapply(grp, nlevels)   # number of grouping factor levels per term 
+    nc <- sapply(mm, ncol)       # number of model matrix columns per term
+    templates <- mkTemplates(nc) # templates for relative covariance factor
+    theta <- mkTheta(templates)
+
+    list(     Zt = mkZt(grp, mm),
+         Lambdat = mkLambdat(templates, nl),
+            Lind = mkLind(nl, nc),
+           theta = theta,
+           lower = ifelse(theta, 0, -Inf),  # lower and
+           upper = rep(Inf, length(theta))  # upper bounds on theta parameters
+         )
+}
+
+
 ##' Create a section of a transposed random effects model matrix
 ##'
 ##' @param grp Grouping factor for a particular random effects term.
 ##' @param mm Dense model matrix for a particular random effects term.
 ##' @return Section of a random effects design matrix corresponding to a
 ##' particular term.
+##' @export
 ##' @examples
 ##' ## consider a term (x | g) with:
 ##' ## number of observations, n = 6
@@ -23,16 +53,17 @@ mkZtSection <- function(grp,mm) {
 }
 
 ##' Make transposed random-effects model matrix
+##' @export
 mkZt <- function(grp,mm){
-    ZtSections <- mapply(mkZtSection, grp, mm)
-    rBind(ZtSections)
+    ZtSections <- mapply(mkZtSection, grp, mm, SIMPLIFY=FALSE)
+    do.call(rBind, ZtSections)
 }
-
 
 ##' Make a single template for a relative covariance factor
 ##'
 ##' @param nc Number of columns in a dense model matrix for a particular
 ##' random effects term
+##' @export
 ##' @examples
 ##' mkTemplate(5)
 mkTemplate <- function(nc){
@@ -48,9 +79,11 @@ mkTemplate <- function(nc){
 }
 
 ##' Make list of templates for relative covariance factor
+##' @export
 mkTemplates <- function(nc) lapply(nc, mkTemplate)
 
 ##' Make vector of indices giving the mapping from theta to Lambdat
+##' @export
 mkLind <- function(nl, nc){
                                         # number of thetas per term (i.e. number
                                         # of elements in the upper triangle of
@@ -69,17 +102,18 @@ mkLind <- function(nl, nc){
 }
 
 ##' Make initial relative covariance factor from list of templates
+##' @export
 mkLambdat <- function(templates, nl){
                                         # repeat templates once for each level
-    repTemplates <- rep(templates, nl)
+    templateList <- rep(templates, nl)
                                         # return Lambdat by putting blocks
                                         # together along the diagonal
-    .bdiag(repTemplates)
+    .bdiag(templateList)
 }    
 
 ##' Make initial theta from list of templates
+##' @export
 mkTheta <- function(templates){
     thetas <- lapply(templates, slot, "x")
     unlist(thetas)
 }
-

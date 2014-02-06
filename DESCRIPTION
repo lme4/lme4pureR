@@ -10,13 +10,11 @@ Description: The penalized least squares (PLS) and penalized iteratively
     in pure R. The purpose is to clarify how PLS and PIRLS work without having
     to read through C++ code, and as a sandbox for trying out modified versions
     of PLS and PIRLS.
+Depends:
+    Matrix
 Suggests:
     minqa,
     mlmRev
 Imports:
-    lme4,
-    Matrix
+    lme4
 License: GPL-2
-Collate:
-    'pirls.R'
-    'pls.R'

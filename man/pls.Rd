@@ -2,11 +2,11 @@
 \alias{pls}
 \title{Create linear mixed model deviance function}
 \usage{
-  pls(X, y, Zt, Lambdat, thfun, weights,
-    offset = numeric(n), REML = TRUE, ...)
+pls(X, y, Zt, Lambdat, thfun, weights, offset = numeric(n), REML = TRUE,
+  ...)
 }
 \arguments{
-  \item{X}{fixed effects design (model) matrix}
+  \item{X}{fixed effects model matrix}
 
   \item{y}{response}
 
@@ -30,14 +30,14 @@
   \item{...}{additional arguments}
 }
 \value{
-  a function that evaluates the deviance or REML criterion
+a function that evaluates the deviance or REML criterion
 }
 \description{
-  A pure \code{R} implementation of the penalized least
-  squares (PLS) approach for computing linear mixed model
-  deviances. The purpose is to clarify how PLS works
-  without having to read through C++ code, and as a sandbox
-  for trying out modifications to PLS.
+A pure \code{R} implementation of the penalized least
+squares (PLS) approach for computing linear mixed model
+deviances. The purpose is to clarify how PLS works without
+having to read through C++ code, and as a sandbox for
+trying out modifications to PLS.
 }
 \keyword{models}
 

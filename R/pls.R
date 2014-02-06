@@ -12,7 +12,7 @@ NULL
 ##' to read through C++ code, and as a sandbox for
 ##' trying out modifications to PLS.
 ##'
-##' @param X fixed effects design (model) matrix
+##' @param X fixed effects model matrix
 ##' @param y response
 ##' @param Zt transpose of the sparse model matrix for the random effects
 ##' @param Lambdat upper triangular sparse Cholesky factor of the
@@ -109,14 +109,14 @@ pls <- function(X,y,Zt,Lambdat,thfun,weights,
 ##'
 ##' @return a \code{list} with:
 ##' \itemize{
-##' \item \code{X} Fixed effects design (model) matrix
+##' \item \code{X} Fixed effects model matrix
 ##' \item \code{y} Observed response vector
 ##' \item \code{fr} Model frame
 ##' \item \code{call} Matched call
 ##' \item \code{REML} Logical indicating REML or not
 ##' \item \code{weights} Prior weights or \code{NULL}
 ##' \item \code{offset} Prior offset term or \code{NULL}
-##' \item \code{Zt} Transposed random effects design matrix
+##' \item \code{Zt} Transposed random effects model matrix
 ##' \item \code{Lambdat} Transposed relative covariance factor
 ##' \item \code{theta} Vector of covariance parameters
 ##' \item \code{lower} Vector of lower bounds for \code{theta}
@@ -142,8 +142,9 @@ plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, 
            y = rho$y,
            fr = fr, call = mc,
            REML = as.logical(REML)[1]),
-      if (is.null(wts <- model.weights(fr))) wts else list(weights=wts),
-      if (is.null(off <- model.offset(fr))) off else list(offset=off),
+      #if (is.null(wts <- model.weights(fr))) wts else list(weights=wts),
+      #if (is.null(off <- model.offset(fr))) off else list(offset=off),
+      list(weights = rho$weights), list(offset = rho$offset),
       mkRanefRepresentation(lapply(rr, function(t) as.factor(eval(t[[3]], fr))),
                 lapply(rr, function(t)
                        model.matrix(eval(substitute( ~ foo, list(foo = t[[2]]))), fr))))
@@ -155,8 +156,8 @@ initializeResp <- function(fr, REML, family){
     if(!inherits(family,"family")) family <- family()
     y <- model.response(fr)
 ### Why consider there here?  They are handled in plsform.
-    #offset <- model.offset(fr)
-    #weights <- model.weights(fr)
+    # offset <- model.offset(fr)
+    # weights <- model.weights(fr)
     n <- nrow(fr)
     etastart_update <- model.extract(fr, "etastart")
     if(length(dim(y)) == 1) {
@@ -172,15 +173,15 @@ initializeResp <- function(fr, REML, family){
     if (!is.null(REML)) rho$REML <- REML
     rho$etastart <- fr$etastart
     rho$mustart <- fr$mustart
-    #if (!is.null(offset)) {
-    #    if (length(offset) == 1L) offset <- rep.int(offset, n)
-    #    stopifnot(length(offset) == n)
-    #    rho$offset <- unname(offset)
-    #} else rho$offset <- rep.int(0, n)
-    #if (!is.null(weights)) {
-    #    stopifnot(length(weights) == n, all(weights >= 0))
-    #    rho$weights <- unname(weights)
-    #} else rho$weights <- rep.int(1, n)
+    if (!is.null(offset <- model.offset(fr))) {
+       if (length(offset) == 1L) offset <- rep.int(offset, n)
+       stopifnot(length(offset) == n)
+       rho$offset <- unname(offset)
+    } else rho$offset <- rep.int(0, n)
+    if (!is.null(weights <- model.weights(fr))) {
+       stopifnot(length(weights) == n, all(weights >= 0))
+       rho$weights <- unname(weights)
+    } else rho$weights <- rep.int(1, n)
     stopifnot(inherits(family, "family"))
     rho$nobs <- n
     eval(family$initialize, rho)
@@ -202,11 +203,11 @@ mkMFCall <- function(mc, form, nobars=FALSE) {
     mc
 }
 
-##' Create a section of a transposed random effects design matrix
+##' Create a section of a transposed random effects model matrix
 ##'
 ##' @param grp Grouping factor for a particular random effects term.
 ##' @param mm Dense model matrix for a particular random effects term.
-##' @return Section of a random effects design matrix corresponding to a
+##' @return Section of a random effects model matrix corresponding to a
 ##' particular term.
 ##' @export
 ##' @examples
@@ -342,6 +343,8 @@ blockLambdat <- function(nl, nc) {
 }
 
 
+
+
 ##' Make random effects representation
 ##'
 ##' Create all of the elements required to specify the random-effects
@@ -363,7 +366,7 @@ blockLambdat <- function(nl, nc) {
 ##' @return A \code{list} with:
 ##' \itemize{
 ##' \item \code{Lambdat} Transformed relative covariance factor
-##' \item \code{Zt} Transformed random effects design matrix
+##' \item \code{Zt} Transformed random effects model matrix
 ##' \item \code{theta} Vector of covariance parameters
 ##' \item \code{lower} Vector of lower bounds on the covariance parameters
 ##' \item \code{upper} Vector of upper bounds on the covariance parameters

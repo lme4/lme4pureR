@@ -1,4 +1,5 @@
 library(lme4pureR)
+library(minqa)
 lmerReproduce <- FALSE
 tol <- 1e-3
 

@@ -1,8 +1,8 @@
 \name{Zsection}
 \alias{Zsection}
-\title{Create a section of a transposed random effects design matrix}
+\title{Create a section of a transposed random effects model matrix}
 \usage{
-  Zsection(grp, mm)
+Zsection(grp, mm)
 }
 \arguments{
   \item{grp}{Grouping factor for a particular random
@@ -12,11 +12,12 @@
   effects term.}
 }
 \value{
-  Dense section of a random effects design matrix
+Section of a random effects model matrix corresponding to a
+particular term.
 }
 \description{
-  Create a section of a transposed random effects design
-  matrix
+Create a section of a transposed random effects model
+matrix
 }
 \examples{
 ## consider a term (x | g) with:

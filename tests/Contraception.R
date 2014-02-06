@@ -55,7 +55,11 @@ beta0 <- coef(gm0)
 ## urbanY       0.692922   0.119668    5.79  7.0e-09
 
 glmod <- glFormula(form, Contraception, binomial)
-devf <- pirls(glmod, gm0$y, gm0$linear.predictor)
+#devf <- pirls(glmod, gm0$y, gm0$linear.predictor)
+devf <- pirls(glmod$X,gm0$y,glmod$reTrms$Zt,glmod$reTrms$Lambdat,
+              glmod$reTrms$thfun,glmod$reTrms$theta,
+              weights = weights(gm0),
+              family=binomial)
 devf(c(1,beta0))
 beta1 <- c(-1.00637368953914, 0.00625611018864605, -0.00463527887823825, 0.860382098849009, 0.692921941313297)
 theta1 <- 0.473985228740739
