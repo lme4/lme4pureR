@@ -4,6 +4,9 @@ rLmer <- function(grp, mmRE, mmFE) message("not yet written")
 
 
 ##' Make random effects structures
+##'
+##' @param grp List of grouping factors (one for each term)
+##' @param mm List of model matrices (one for each term)
 ##' @export
 mkRanefStructures <- function(grp, mm){
                                         # checking things are OK
@@ -70,7 +73,7 @@ mkTemplate <- function(nc){
                                         # generate row (i) and column (j) indices
                                         # of the upper triangular template matrix
     i <- sequence(1:nc); j <- rep(1:nc,1:nc)
-                                        # generate theta:
+                                        # initialize theta:
                                         # 1) 1's along the diagonal (i.e. when i==j)
                                         # 2) 0's above the diagonal (i.e. when i!=j)
     theta <- 1*(i==j)
@@ -116,4 +119,35 @@ mkLambdat <- function(templates, nl){
 mkTheta <- function(templates){
     thetas <- lapply(templates, slot, "x")
     unlist(thetas)
+}
+
+
+
+
+##' Make random effects structures for the single correlation template model
+##' @export
+mkRanefStructuresCorr <- function(corr, grp, n){
+                                        # create indicator matrix and order it
+                                        # to be consistent with the order of corr
+    Jt <- as(as.factor(grp), Class="sparseMatrix")
+    Jt <- Jt[dimnames(corr)[[1]],]
+
+                                        # create Zt
+    Zt <- KhatriRao(Jt, t(rep(1,n)))
+
+    Lambdat <- as(t(chol(corr)), Class="sparseMatrix")
+    # Lambdat <- Cholesky(as(Matrix(corr), Class="sparseMatrix"))
+
+    thfun <- local({
+        template <- Lambdat
+        function(theta) theta * template@x})
+    
+    list(     Zt = Zt,
+         Lambdat = Lambdat,
+           thfun = thfun,
+           theta = 1,
+           lower = 0,    # lower and
+           upper = Inf)  # upper bounds on theta parameters
+    
+
 }

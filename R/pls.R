@@ -3,6 +3,106 @@
 ##' @importFrom lme4 findbars nobars subbars
 NULL
 
+
+##' Fit a mixed effects from raw matrices, vectors and grouping factors
+##' 
+##' The only output from this function is the result of an optimization
+##' over the covariance parameters.
+##' 
+##' @param y response vector
+##' @param mmFE model matrix for the fixed effects
+##' @param mmRE template model matrix for the random effects
+##'             (or optionally a list of such matrices)
+##' @param grp grouping factor for the random effects
+##'             (or optionally a list of such factors)
+##' @param weights weights
+##' @param offset offset
+##' @param REML should restricted maximum likelihood be used?
+##' 
+##' @export
+##'
+##' @examples
+##' library(lme4pureR)
+##' library(lme4)
+##' library(minqa)
+##' set.seed(1)
+##' n <- 1000
+##' x <- rnorm(n)
+##' z <- rnorm(n)
+##' X <- cbind(1, x)
+##' ZZ <- cbind(1, z)
+##' grp <- gl(n/5,5)
+##' RE <- mkRanefStructures(list(grp), list(ZZ))
+##' Z <- t(RE$Zt)
+##' y <- as.numeric(X%*%rnorm(ncol(X)) + Z%*%rnorm(ncol(Z)) + rnorm(n))
+##' m <- lmer.fit(y,X,ZZ,grp)
+##' m$par
+##' Lambdat <- RE$Lambdat
+##' Lambdat@x <- m$par[RE$Lind]
+##' cov2cor(crossprod(Lambdat)[1:2,1:2])
+##' lmer(y ~ x + (z|grp))
+lmer.fit <- function(y, mmFE, mmRE, grp,
+                     weights, offset = numeric(n),
+                     REML = TRUE){
+    if(missing(weights)) weights <- rep(1,length(y))
+    initRE <- mkRanefStructures(grp, mmRE)
+    devfun <- with(initRE, {
+        pls(mmFE,y,Zt,Lambdat,
+            thfun = function(theta) theta[Lind],
+            weights = weights, offset = offset,
+            REML = REML)})
+    with(initRE, {
+        bobyqa(initRE$theta, devfun,
+               lower = lower, upper = upper)})
+}
+
+##' lmer.fit function for the single correlation template model
+##'
+##' @param y response vector
+##' @param mmFE model matrix for the fixed effects
+##' @param corr template correlation matrix for the single scalar random effect
+##' @param grp grouping factor for the random effect (levels correspond
+##'            to \code{dimnames} of \code{corr}
+##' @param weights weights
+##' @param offset offset
+##' @param REML should restricted maximum likelihood be used?
+##' 
+##' @export
+##' @examples
+##' library(lme4pureR)
+##' library(lme4)
+##' library(minqa)
+##' library(subscript)
+##' library(rmv)
+##' set.seed(1)
+##' n <- 100
+##' x <- rnorm(n)
+##' X <- cbind(1, x)
+##' grp <- gl(n/5,5)
+##' ugrps <- unique(grp)
+##' q <- length(ugrps)
+##' corr <- rcov(q+1,q)
+##' dimnames(corr) <- rep(list(as.character(ugrps)), 2)
+##' b <- as.numeric(rmv(1,corr) %*% as(grp, "sparseMatrix"))
+##' y <- as.numeric(X%*%rnorm(ncol(X)) + b + rnorm(n))
+##'
+##' m <- lmerCorr.fit(y, X, corr, grp)
+##' m$par
+lmerCorr.fit <- function(y, mmFE, corr, grp,
+                                   weights, offset = numeric(n),
+                                   REML = TRUE){
+    if(missing(weights)) weights <- rep(1,length(y))
+    initRE <- mkRanefStructuresCorr(corr, grp, length(y))
+    devfun <- with(initRE, {
+        pls(mmFE,y,Zt,Lambdat,thfun=thfun,
+            weights = weights, offset = offset,
+            REML = REML)})
+    with(initRE, {
+        bobyqa(initRE$theta, devfun,
+               lower = lower, upper = upper)})
+    
+}
+
 ##' Create linear mixed model deviance function
 ##'
 ##' A pure \code{R} implementation of the
