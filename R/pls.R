@@ -103,6 +103,7 @@ lmerCorr.fit <- function(y, mmFE, corr, grp,
     
 }
 
+
 ##' Create linear mixed model deviance function
 ##'
 ##' A pure \code{R} implementation of the

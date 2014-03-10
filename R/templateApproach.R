@@ -135,19 +135,20 @@ mkRanefStructuresCorr <- function(corr, grp, n){
                                         # create Zt
     Zt <- KhatriRao(Jt, t(rep(1,n)))
 
+                                        # create Lambdat
     Lambdat <- as(t(chol(corr)), Class="sparseMatrix")
-    # Lambdat <- Cholesky(as(Matrix(corr), Class="sparseMatrix"))
 
+                                        # create mapping from theta to
+                                        # the non-zero components of
+                                        # Lambdat
     thfun <- local({
         template <- Lambdat
         function(theta) theta * template@x})
-    
+
     list(     Zt = Zt,
          Lambdat = Lambdat,
            thfun = thfun,
            theta = 1,
            lower = 0,    # lower and
            upper = Inf)  # upper bounds on theta parameters
-    
-
 }
