@@ -62,7 +62,8 @@ plsJSS <- function(X, y, Zt, Lambdat, mapping, weights,
                                         # by placing the new values of theta
                                         # in the appropriate positions
             Lambdat@x[] <<- mapping(theta)
-                                        # update random-effects Cholesky factor
+                                        # update random-effects
+                                        # Cholesky factor (eqn. 18)
             L <<- update(L, Lambdat %*% ZtW, mult = 1)
             
             ##################################################
