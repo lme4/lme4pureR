@@ -27,7 +27,6 @@
 plsJSS <- function(X, y, Zt, Lambdat, mapping, weights,
                    offset = numeric(n), REML = TRUE, ...)
 {
-    # SW: how to test for sparse matrices, without specifying the specific class?
     stopifnot(is.matrix(X)) #  is.matrix(Zt), is.matrix(Lambdat))
     n <- length(y); p <- ncol(X); q <- nrow(Zt)
     stopifnot(nrow(X) == n, ncol(Zt) == n,
@@ -69,25 +68,28 @@ plsJSS <- function(X, y, Zt, Lambdat, mapping, weights,
             ##################################################
             # Step II: solve normal equations
             ##################################################
-                                        # solve eqn. ??
+                                        # solve eqn. 48
             cu[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWy,
                                               system="P"), system="L"))
-                                        # solve eqn. ??
+                                        # solve eqn. 49
             RZX[] <<- as.vector(solve(L, solve(L, Lambdat %*% ZtWX,
                                                system="P"), system="L"))
-                                        # downdate XtWX and form Cholesky
-                                        # factor (eqn. ??)
+                                        # downdate XtWX and form
+                                        # Cholesky factor (eqn. 50)
             RXtRX <<- as(XtWX - crossprod(RZX), "dpoMatrix")
-                                        # conditional estimate of fixed-effects
-                                        # coefficients (solve eqn. ??)
+                                        # conditional estimate of
+                                        # fixed-effects coefficients
+                                        # (solve eqn. 51)
             beta[] <<- as.vector(solve(RXtRX, XtWy - crossprod(RZX, cu)))
-                                        # conditional mode of the spherical
-                                        # random-effects coefficients (eqn. ??)
+                                        # conditional mode of the
+                                        # spherical random-effects
+                                        # coefficients (eqn. 52)
             u[] <<- as.vector(solve(L, solve(L, cu - RZX %*% beta,
                                              system = "Lt"), system="Pt"))
-                                        # update conditional model of the
-                                        # non-spherical random-effects
-                                        # coefficients
+                                        # update conditional model of
+                                        # the non-spherical
+                                        # random-effects coefficients
+                                        # (eqn. 11)
             b[] <<- as.vector(crossprod(Lambdat,u))
 
             
@@ -95,16 +97,18 @@ plsJSS <- function(X, y, Zt, Lambdat, mapping, weights,
             # Step III: update linear predictor and residuals
             ##################################################
                                         # update linear predictor
+                                        # (eqn. 13)
             mu[] <<- as.vector(crossprod(Zt,b) + X %*% beta + offset)
-                                        # weighted residuals
+                                        # weighted residuals (eqn. 15)
             wtres <- sqrtW*(y-mu)
-                                        # penalized, weighted residual
-                                        # sum-of-squares
+
 
 
             ##################################################
             # Step IV: compute profiled deviance
             ##################################################
+                                        # penalized, weighted residual
+                                        # sum-of-squares (eqn. 14)
             pwrss <- sum(wtres^2) + sum(u^2)
                                         # log determinant (depends on
                                         # whether REML or ML is used)
@@ -112,7 +116,8 @@ plsJSS <- function(X, y, Zt, Lambdat, mapping, weights,
             if (REML) logDet <- logDet + determinant(RXtRX,
                                                      logarithm = TRUE)$modulus
             attributes(logDet) <- NULL
-                                        # profiled deviance or REML criterion
+                                        # profiled deviance or REML
+                                        # criterion (eqns. 34, 41)
             profDev <- logDet + degFree*(1 + log(2*pi*pwrss) - log(degFree))
             return(profDev)
         }
