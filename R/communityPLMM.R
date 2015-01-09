@@ -1,8 +1,83 @@
+##' Phylogenetic Generalized Linear Mixed Model for Community Data
+##'
+##' This function performs Generalized Linear Mixed Models for binary
+##' and continuous phylogenetic data, estimating regression
+##' coefficients with approximate standard errors. It is a modeled
+##' after \code{lmer} but is more general by allowing correlation
+##' structure within random effects; these correlations can be
+##' phylogenetic among species, or any other correlation structure,
+##' such as geographical correlations among sites. It is, however,
+##' much more specific than \code{lmer} in that it can only analyze a
+##' subset of the types of model designed handled by \code{lmer}. It
+##' is also much slower than \code{lmer} and requires users to specify
+##' correlation structures as covariance matrices.
+##' \code{communityPGLMM} can analyze models in Ives and Helmus
+##' (2011). It can also analyze bipartite phylogenetic data, such as
+##' that analyzed in Rafferty and Ives (2011), by giving sites
+##' phylogenetic correlations.
+##'
+##' @param formula a two-sided linear formula object describing the
+##' fixed-effects of the model; for example, \code{Y ~ X}.
+##' @param data data frame containing the variables named in formula. The
+##' data frame should have long format with factors specifying species
+##' and sites.  \code{communityPGLMM} will reorder rows of the data
+##' frame so that species are nested within sites.
+##' @param family either \code{gaussian} for a Linear Mixed Model, or
+##' \code{binomial} for binary dependent data.
+##' @param sp a factor variable that identifies species
+##' @param site a factor variable that identifies sites
+##' @param random.effects a list that contains, for non-nested random
+##' effects, lists of triplets of the form \code{list(X, group =
+##' group, covar = V)}. This is modeled after the \code{lmer} formula
+##' syntax \code{(X | group)} where \code{X} is a variable and group
+##' is a grouping factor. Note that group should be either your sp or
+##' site variable specified in sp and site. The additional term
+##' \code{V} is a covariance matrix of rank equal to the number of
+##' levels of group that specifies the covariances among groups in the
+##' random effect \code{X}. For nested variable random effects,
+##' random.effects contains lists of quadruplets of the form
+##' \code{list(X, group1 = group1, covar = V, group2 = group2)} where
+##' \code{group1} is nested within \code{group2}.
+##' @param REML whether REML or ML is used for model fitting. For the
+##' generalized linear mixed model for binary data, these don't have
+##' standard interpretations, and there is no log likelihood function
+##' that can be used in likelihood ratio tests.
+##' @param s2.init an array of initial estimates of \code{s2} for each
+##' random effect that scales the variance. If s2.init is not provided
+##' for \code{family="gaussian"}, these are estimated using in a
+##' clunky way using \code{lm} assuming no phylogenetic signal.  A
+##' better approach is to run \code{lmer} and use the output random
+##' effects for \code{s2.init}. If \code{s2.init} is not provided for
+##' \code{family="binomial"}, these are set to 0.25.
+##' @param B.init initial estimates of B, a matrix containing
+##' regression coefficients in the model for the fixed effects. This
+##' matrix must have dim(B.init)=c(p+1,1), where p is the number of
+##' predictor (independent) variables; the first element of B
+##' corresponds to the intercept, and the remaining elements
+##' correspond in order to the predictor (independent) variables in
+##' the formula.  If B.init is not provided, these are estimated using
+##' in a clunky way using lm() or glm() assuming no phylogenetic
+##' signal.  A better approach is to run lmer() and use the output
+##' fixed effects for B.init.
+##' @param reltol a control parameter dictating the relative tolerance
+##' for convergence in the optimization; see optim().
+##' @param maxit a control parameter dictating the maximum number of
+##' iterations in the optimization; see optim().
+##' @param reltol.pgl a control parameter dictating the tolerance for
+##' convergence in the PQL estimates of the mean components of the
+##' binomial GLMM.
+##' @param maxit.pgl a control parameter dictating the maximum number
+##' of iterations in the PQL estimates of the mean components of the
+##' binomial GLMM.
+##' @param verbose if TRUE, the model deviance and running estimates
+##' of s2 and B are plotted each iteration during optimization.
+##'
+##' @details For linear mixed models (family = "gaussian"), the
+##' function estimates parameters for the model of the form FIXME
 communityPGLMM <- function(formula, data = list(), family = "gaussian",
-                           sp = NULL, site = NULL, random.effects = list(), 
-                           REML = TRUE, s2.init = NULL, B.init = NULL,
-                           reltol = 10^-6, maxit = 500, tol.pql = 10^-6, maxit.pql = 200, 
-                           verbose = FALSE) {
+                           sp = NULL, site = NULL, random.effects = list(), REML =
+                           TRUE, s2.init = NULL, B.init = NULL, reltol = 10^-6, maxit = 500,
+                           tol.pql = 10^-6, maxit.pql = 200, verbose = FALSE) {
 
     if (family == "gaussian") 
         z <- communityPGLMM.gaussian(formula = formula, data = data, sp = sp,
