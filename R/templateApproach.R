@@ -125,6 +125,10 @@ mkTheta <- function(templates){
 
 
 ##' Make random effects structures for the single correlation template model
+##'
+##' @param corr a correlation matrix template
+##' @param grp a grouping factor vector
+##' @param n sample size
 ##' @export
 mkRanefStructuresCorr <- function(corr, grp, n){
                                         # create indicator matrix and order it
@@ -152,3 +156,4 @@ mkRanefStructuresCorr <- function(corr, grp, n){
            lower = 0,    # lower and
            upper = Inf)  # upper bounds on theta parameters
 }
+

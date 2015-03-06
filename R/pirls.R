@@ -41,7 +41,7 @@ pirls <- function(X,y,Zt,Lambdat,thfun,theta,
     if (is.function(family)) family <- family() # ensure family is a list
 
     local({    
-        nth <- max(thfun(theta))
+        nth <- length(theta)
         betaind <- -seq_len(nth) # indices to drop 1:nth
         linkinv <- family$linkinv
         variance <- family$variance
@@ -70,9 +70,9 @@ pirls <- function(X,y,Zt,Lambdat,thfun,theta,
                 cvgd <- FALSE
                 for(i in 1:npirls){
                                         # update w and muEta
-                    Whalf <- Diagonal(x=sqrt(weights/variance(mu)))
+                    Whalf <- Diagonal(x = sqrt(weights / variance(mu)))
                                         # update weighted design matrix
-                    LtZtMWhalf <- LtZt %*% (Diagonal(x=muEta(eta)) %*% Whalf)
+                    LtZtMWhalf <- LtZt %*% (Diagonal(x = muEta(eta)) %*% Whalf)
                                         # update Cholesky decomposition
                     L <- update(L, LtZtMWhalf, 1)
                                         # alternative (more explicit but slower)
@@ -84,7 +84,7 @@ pirls <- function(X,y,Zt,Lambdat,thfun,theta,
                     delu <- as.vector(solve(L, LtZtMWhalf %*% wtres - u))
                     if (verbose > 0L) {
                         cat(sprintf("inc: %12.4g", delu[1]))
-                        nprint <- min(5,length(delu))
+                        nprint <- min(5, length(delu))
                         for (j in 2:nprint) cat(sprintf(" %12.4g", delu[j]))
                         cat("\n")
                     }
