@@ -1,5 +1,4 @@
 ##' @importMethodsFrom Matrix t %*% crossprod diag tcrossprod solve determinant update
-##' @importFrom Matrix bdiag rBind Diagonal Cholesky sparse.model.matrix
 ##' @importFrom lme4 findbars nobars subbars
 NULL
 
@@ -341,9 +340,9 @@ Zsection <- function(grp,mm) {
 ##                                         # eg: if m = 2, nrow(Jt) = 10, we want the order:
 ##                                         #     1,11,2,12,3,13,...,20
 ##     rinds <- as.vector(matrix(seq_len(m*nrow(Jt)), nrow=m, byrow=TRUE))
-##                                         # rBind products of Jt and a diagonal matrix
+##                                         # rbind products of Jt and a diagonal matrix
 ##                                         # for each column, then rearrange rows.
-##     do.call(rBind,lapply(seq_len(m), function(j) Jt %*% Diagonal(x=mm[,j])))[rinds,]
+##     do.call(rbind,lapply(seq_len(m), function(j) Jt %*% Diagonal(x=mm[,j])))[rinds,]
 ## }
 
 
@@ -459,7 +458,7 @@ blockLambdat <- function(nl, nc) {
 ##' The basic idea of this function is to call \code{\link{Zsection}} and
 ##' \code{\link{blockLambdat}} once for each random effects term (ie.
 ##' each list element in \code{grps} and \code{mms}). The results of
-##' \code{\link{Zsection}} for each term are \code{rBind}ed together.
+##' \code{\link{Zsection}} for each term are \code{rbind}ed together.
 ##' The results of \code{\link{blockLambdat}} are \code{bdiag}ed
 ##' together, unless all terms have only a single column ('predictor')
 ##' in which case a diagonal matrix is created directly.
@@ -478,8 +477,8 @@ blockLambdat <- function(nl, nc) {
 mkRanefRepresentation <- function(grps, mms) {
                                         # compute transposed random effects model
                                         # matrix, Zt (Class="dgCMatrix"), by
-                                        # rBinding the sections for each term.
-    ll <- list(Zt = do.call(rBind, mapply(Zsection, grps, mms)))
+                                        # rbinding the sections for each term.
+    ll <- list(Zt = do.call(rbind, mapply(Zsection, grps, mms)))
                                         # number of levels in each grouping factor
     nl <- sapply(grps, function(g) length(levels(g)))
                                         # number of columns in each model matrix

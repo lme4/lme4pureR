@@ -59,7 +59,7 @@ mkZtSection <- function(grp,mm) {
 ##' @export
 mkZt <- function(grp,mm){
     ZtSections <- mapply(mkZtSection, grp, mm, SIMPLIFY=FALSE)
-    do.call(rBind, ZtSections)
+    do.call(rbind, ZtSections)
 }
 
 ##' Make a single template for a relative covariance factor
