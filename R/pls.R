@@ -239,7 +239,8 @@ plsform <- function(formula, data, REML=TRUE, weights, offset, sparseX = FALSE, 
     fr1 <- eval(mkMFCall(mc, formula, TRUE), parent.frame())  # evaluate the model frame sans bars
     trms <- attr(fr, "terms") <- attr(fr1, "terms")
     rho <- initializeResp(fr, REML=REML, family=family) # FIXME: make use of etastart and mustart
-    c(list(X = if (sparseX) sparse.model.matrix(trms,fr) else model.matrix(trms,fr),
+    X <- if (sparseX) sparse.model.matrix(trms,fr) else model.matrix(trms,fr)
+    c(list(X = X,
            y = rho$y,
            fr = fr, call = mc,
            REML = as.logical(REML)[1]),
@@ -479,7 +480,7 @@ mkRanefRepresentation <- function(grps, mms) {
                                         # compute transposed random effects model
                                         # matrix, Zt (Class="dgCMatrix"), by
                                         # rBinding the sections for each term.
-    ll <- list(Zt = do.call(rBind, mapply(Zsection, grps, mms)))
+    ll <- list(Zt = do.call(rbind, mapply(Zsection, grps, mms)))
                                         # number of levels in each grouping factor
     nl <- sapply(grps, function(g) length(levels(g)))
                                         # number of columns in each model matrix
