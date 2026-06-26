@@ -13,8 +13,12 @@ Description: The penalized least squares (PLS) and penalized iteratively
 Depends:
     Matrix
 Suggests:
+    lme4,
     minqa,
-    mlmRev
+    mlmRev,
+    plotrix
 Imports:
-    lme4
+    reformulas
 License: GPL-2
+Config/roxygen2/version: 8.0.0
+Encoding: UTF-8

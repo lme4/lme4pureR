@@ -113,9 +113,8 @@ plsJSS <- function(X, y, Zt, Lambdat, mapping, weights,
             pwrss <- sum(wtres^2) + sum(u^2)
                                         # log determinant (depends on
                                         # whether REML or ML is used)
-            logDet <- 2*determinant(L, logarithm = TRUE)$modulus 
-            if (REML) logDet <- logDet + determinant(RXtRX,
-                                                     logarithm = TRUE)$modulus
+            logDet <- 2*mylogdet(L)$modulus 
+            if (REML) logDet <- logDet + mylogdet(RXtRX)$modulus
             attributes(logDet) <- NULL
                                         # profiled deviance or REML
                                         # criterion (eqns. 34, 41)

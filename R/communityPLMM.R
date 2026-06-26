@@ -168,11 +168,11 @@ communityPGLMM.gaussian <- function(formula, data = list(), family = "gaussian",
         
         if (q.Nested == 0) {
                                         # Sylvester identity
-            logdetV <- determinant(Ishort + Ut.iA.U)$modulus[1]
+            logdetV <- mylogdet(Ishort + Ut.iA.U)[1]
             if (is.infinite(logdetV)) 
                 logdetV <- 2 * sum(log(diag(chol(Ishort + Ut.iA.U))))
         } else {
-            logdetV <- -determinant(iV)$modulus[1]
+            logdetV <- -mylogdet(iV)[1]
             if (is.infinite(logdetV)) 
                 logdetV <- -2 * sum(log(diag(chol(iV, pivot = T))))
             if (is.infinite(logdetV)) 
@@ -380,12 +380,12 @@ communityPGLMM.gaussian <- function(formula, data = list(), family = "gaussian",
     
     if (q.Nested == 0) {
                                         # Sylvester identity
-        logdetV <- determinant(Ishort + Ut.iA.U)$modulus[1]
+        logdetV <- mylogdet(Ishort + Ut.iA.U)[1]
         if (is.infinite(logdetV)) {
             logdetV <- 2 * sum(log(diag(chol(Ishort + Ut.iA.U))))
         }
     } else {
-        logdetV <- -determinant(iV)$modulus[1]
+        logdetV <- -mylogdet(iV)[1]
         if (is.infinite(logdetV)) {
             logdetV <- -2 * sum(log(diag(chol(iV, pivot = T))))
         }
@@ -582,9 +582,9 @@ communityPGLMM.binary <- function(formula, data = list(), family = "binomial",
             iA <- diag(as.vector((mu * (1 - mu))))
             Ishort <- as(diag(nrow(Ut)), "dsCMatrix")
             Ut.iA.U <- Ut %*% iA %*% U
-            logdetV <- determinant(Ishort + Ut.iA.U)$modulus[1] - determinant(iA)$modulus[1]
+            logdetV <- mylogdet(Ishort + Ut.iA.U)[1] - mylogdet(iA)[1]
             if (is.infinite(logdetV)) 
-                logdetV <- 2 * sum(log(diag(chol(Ishort + Ut.iA.U)))) - determinant(iA)$modulus[1]
+                logdetV <- 2 * sum(log(diag(chol(Ishort + Ut.iA.U)))) - mylogdet(iA)[1]
         } else {
             A <- diag(as.vector((mu * (1 - mu))^-1))
             for (j in 1:q.Nested) {
@@ -598,7 +598,7 @@ communityPGLMM.binary <- function(formula, data = list(), family = "binomial",
             } else {
                 iV <- iA
             }
-            logdetV <- -determinant(iV)$modulus[1]
+            logdetV <- -mylogdet(iV)[1]
             if (is.infinite(logdetV)) 
                 logdetV <- -2 * sum(log(diag(chol(iV, pivot = T))))
             if (is.infinite(logdetV)) 
@@ -949,9 +949,9 @@ communityPGLMM.binary.LRT <- function(x, re.number = 0, ...) {
             iA <- diag(as.vector((mu * (1 - mu))))
             Ishort <- as(diag(nrow(Ut)), "dsCMatrix")
             Ut.iA.U <- Ut %*% iA %*% U
-            logdetV <- determinant(Ishort + Ut.iA.U)$modulus[1] - determinant(iA)$modulus[1]
+            logdetV <- mylogdet(Ishort + Ut.iA.U)[1] - mylogdet(iA)[1]
             if (is.infinite(logdetV)) 
-                logdetV <- 2 * sum(log(diag(chol(Ishort + Ut.iA.U)))) - determinant(iA)$modulus[1]
+                logdetV <- 2 * sum(log(diag(chol(Ishort + Ut.iA.U)))) - mylogdet(iA)[1]
         } else {
             A <- diag(as.vector((mu * (1 - mu))^-1))
             for (j in 1:q.Nested) {
@@ -965,7 +965,7 @@ communityPGLMM.binary.LRT <- function(x, re.number = 0, ...) {
             } else {
                 iV <- iA
             }
-            logdetV <- -determinant(iV)$modulus[1]
+            logdetV <- -mylogdet(iV)[1]
             if (is.infinite(logdetV)) 
                 logdetV <- -2 * sum(log(diag(chol(iV, pivot = T))))
             if (is.infinite(logdetV)) 
@@ -1196,6 +1196,7 @@ communityPGLMM.matrix.structure <- function(formula, data = list(), family = "bi
 # summary.communityPGLMM
 ######################################################
 ######################################################
+#' @export
 summary.communityPGLMM <- function(x, digits = max(3, getOption("digits") - 3), ...) {
     if (x$family == "gaussian") {
         if (x$REML == TRUE) 
@@ -1246,6 +1247,7 @@ summary.communityPGLMM <- function(x, digits = max(3, getOption("digits") - 3), 
     cat("\n")
 }
 
+#' @export
 print.communityPGLMM <- function(x, digits = max(3, getOption("digits") - 3), ...) {
     summary.communityPGLMM(x, digits = digits)
 }
@@ -1255,8 +1257,9 @@ print.communityPGLMM <- function(x, digits = max(3, getOption("digits") - 3), ..
 # plot.communityPGLMM
 ######################################################
 ######################################################
+#' @export
 plot.communityPGLMM <- function(x, digits = max(3, getOption("digits") - 3), ...) {
-    if (!require(plotrix)) {
+    if (!requireNamespace(plotrix)) {
         stop("The 'plotrix' package is required to plot images from this function")
     }
     
@@ -1266,7 +1269,7 @@ plot.communityPGLMM <- function(x, digits = max(3, getOption("digits") - 3), ...
     
     par(mfrow = c(1, 1), las = 1, mar = c(4, 4, 2, 2) - 0.1)
     
-    color2D.matplot(Y, ylab = "species", xlab = "sites", main = "Observed values")
+    plotrix::color2D.matplot(Y, ylab = "species", xlab = "sites", main = "Observed values")
 }
 
 
@@ -1291,8 +1294,8 @@ communityPGLMM.predicted.values <- function(x, show.plot = TRUE, ...) {
         predicted.values <- as.numeric(h)
     }
     
-    if (show.plot == TRUE) {
-        if (!require(plotrix)) {
+    if (show.plot) {
+        if (!requireNamespace(plotrix)) {
             stop("The 'plotrix' package is required to plot images from this function")
         }
         
@@ -1301,7 +1304,7 @@ communityPGLMM.predicted.values <- function(x, show.plot = TRUE, ...) {
         Y <- Y[, 2:dim(Y)[2]]
         par(mfrow = c(1, 1), las = 1, mar = c(4, 4, 2, 2) - 0.1)
         
-        color2D.matplot(Y, ylab = "species", xlab = "sites", main = "Predicted values")
+        plotrix::color2D.matplot(Y, ylab = "species", xlab = "sites", main = "Predicted values")
     }
     return(predicted.values)
 }

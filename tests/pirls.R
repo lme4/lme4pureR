@@ -1,66 +1,70 @@
 library(lme4pureR)
-library(minqa)
-glmerReproduce <- FALSE
-tol <- 1e-3
+if (require("minqa") && require("lme4") && requireNamespace("mlmRev")) {
+    glmerReproduce <- FALSE
+    tol <- 5e-4
 
-form <- cbind(incidence, size - incidence) ~ period + (1 | herd)
-data(cbpp, package = 'lme4')
-ll <- plsform(form, data = cbpp, family = binomial)
-devf <- do.call(pirls, c(ll, list(family=binomial)))
-rho <- environment(devf)
-opt <- minqa:::bobyqa(c(ll$theta, rho$beta), devf)
-if(glmerReproduce){
-    mML <- lme4::glmer(form, data = cbpp, family = binomial)
-    par <- unname(c(lme4::getME(mML, "theta"), getME(mML, "beta")))
-    fval <- deviance(mML)
-} else{
-    par <- c(0.6420622, -1.3983429, -0.9919250, -1.1282162, -1.5797454)
-    fval <- 184.0531
-}
-all.equal(par, opt$par, tolerance = tol)
-all.equal(fval, opt$fval, tolerance = tol)
+    form <- cbind(incidence, size - incidence) ~ period + (1 | herd)
+    data(cbpp, package = 'lme4')
+    ll <- plsform(form, data = cbpp, family = binomial)
+    devf <- do.call(pirls, c(ll, list(family=binomial)))
+    rho <- environment(devf)
+    ## 
+    opt <- minqa::bobyqa(c(ll$theta, rho$beta), devf)
+    if(glmerReproduce){
+        mML <- glmer(form, data = cbpp, family = binomial,
+                           control = glmerControl(nAGQ0initStep = FALSE))
+        par <- unname(c(getME(mML, "theta"), getME(mML, "beta")))
+        fval <- -2*c(logLik(mML))
+    } else{
+        par <- c(0.6420622, -1.3983429, -0.9919250, -1.1282162, -1.5797454)
+        fval <- 184.0531
+    }
+    all.equal(par, opt$par, tolerance = 0)
+    all.equal(fval, opt$fval, tolerance = 0)
+    stopifnot(all.equal(par, opt$par, tolerance = tol))
+    stopifnot(all.equal(fval, opt$fval, tolerance = tol))
 
-options(show.signif.stars = FALSE)
-form <- use ~ age + I(age^2) + ch + urban + (1|district)
-data(Contraception, package = 'mlmRev')
-Contraception <- within(Contraception, ch <- factor(as.numeric(as.integer(livch)>1L)))
-glm0 <- glm(lme4:::nobars(form),binomial,Contraception)
-ll <- plsform(form, data = Contraception, family = binomial)
-devf <- do.call(pirls, c(ll, list(family=binomial,eta=glm0$linear.predictor, tol=1e-6)))
-rho <- environment(devf)
+    options(show.signif.stars = FALSE)
+    form <- use ~ age + I(age^2) + ch + urban + (1|district)
+    data(Contraception, package = 'mlmRev')
+    Contraception <- within(Contraception, ch <- factor(as.numeric(as.integer(livch)>1L)))
+    glm0 <- glm(reformulas::nobars(form), binomial, Contraception)
+    ll <- plsform(form, data = Contraception, family = binomial)
+    devf <- do.call(pirls,
+                    c(ll, list(family=binomial,eta=glm0$linear.predictor, tol=1e-6)))
+    rho <- environment(devf)
 
 if(FALSE){ # FIXME: why step-halving problem?
-opt <- minqa:::bobyqa(c(ll$theta, rho$beta), devf)
+opt <- minqa::bobyqa(c(ll$theta, rho$beta), devf)
 opt <- minqa:::bobyqa(c(ll$theta, coef(glm0)), devf)
 opt <- minqa:::bobyqa(opt$par, devf)
 }
 
-form <- use ~ age + I(age^2) + ch + urban + (1|district)
-data(Contraception, package = 'mlmRev')
-Contraception <- within(Contraception, ch <- factor(as.numeric(as.integer(livch)>1L)))
-glm0 <- glm(lme4:::nobars(form),binomial,Contraception)
-ll <- plsform(form, data = Contraception, family = binomial)
-devf <- do.call(pirls, c(ll, list(family=binomial,eta=glm0$linear.predictor, tol=1e-6)))
+    form <- use ~ age + I(age^2) + ch + urban + (1|district)
+    data(Contraception, package = 'mlmRev')
+    Contraception <- within(Contraception, ch <- factor(as.numeric(as.integer(livch)>1L)))
+glm0 <- glm(reformulas::nobars(form),binomial, Contraception)
+    ll <- plsform(form, data = Contraception, family = binomial)
+    devf <- do.call(pirls, c(ll, list(family=binomial,eta=glm0$linear.predictor, tol=1e-6)))
 
 #body(devf)[8] <- parse("olducden <- updatemu(u); print(ucden); print(olducden)")
 #body(devf)[7:9] <- parse(text = "olducden <- updatemu(u); print(ucden); print(olducden)")
 paropt <- c(0.474010082, -1.006445615,  0.006255540, -0.004635385,  0.860439478, 0.692959336)
 devf(paropt)
-if(FALSE) opt <- minqa:::bobyqa(paropt, devf) # FIXME: step-halving again
+if(FALSE) opt <- minqa::bobyqa(paropt, devf) # FIXME: step-halving again
 devf(paropt)
 
-library(lme4)
-glmer0 <- glmer(form, data = Contraception, family = binomial, nAGQ = 0)
+    glmer0 <- glmer(form, data = Contraception, family = binomial, nAGQ = 0)
 ll <- plsform(form, data = Contraception, family = binomial)
 devf <- do.call(pirls, c(ll, list(family=binomial,eta=qlogis(getME(glmer0, 'mu')), verbose=2L)))
-if(FALSE) opt <- minqa:::bobyqa(c(glmer0@theta,glmer0@beta), devf) #FIXME
+if(FALSE) opt <- minqa::bobyqa(c(glmer0@theta,glmer0@beta), devf) #FIXME
 
 
 
 glmer0 <- glmer(form, data = Contraception, family = binomial, nAGQ = 0)
 ll <- plsform(form, data = Contraception, family = binomial)
 devf <- do.call(pirls, c(ll, list(family=binomial,eta=qlogis(getME(glmer0, 'mu')), tol=1e-6)))
-if(FALSE) opt <- minqa:::bobyqa(c(glmer0@theta,glmer0@beta), devf) # FIXME
+if(FALSE) opt <- minqa::bobyqa(c(glmer0@theta,glmer0@beta), devf) # FIXME
 
 gmod <- glFormula(form, data = Contraception, family = binomial, nAGQ = 1)
 devf <- do.call(mkGlmerDevfun, gmod)
@@ -139,3 +143,4 @@ theta3 <- 0.571568547571509
 ## dput(head(unname(getME(gm3,"u"))))
 ## c(-1.63882047908625, -1.02416872093547, -0.0343530888451908, 
 ## 0.510937117406129, -0.419566092717808, 1.10846888333543)
+}

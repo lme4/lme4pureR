@@ -119,7 +119,7 @@ pirls <- function(X,y,Zt,Lambdat,thfun,theta,
                 if(!cvgd) stop("PIRLS failed to converge")
 
                                         # create Laplace approx to -2log(L)
-                ldL2 <- 2*determinant(L, logarithm = TRUE)$modulus
+                ldL2 <- 2*mylogdet(L)
                 attributes(ldL2) <- NULL
                 # FIXME: allow for quadrature approximations too
                 Lm2ll <- aic(y,rep.int(1,n),mu,weights,NULL) + sum(u^2) + ldL2 #+ (q/2)*log(2*pi)
